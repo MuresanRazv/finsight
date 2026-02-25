@@ -1,0 +1,27 @@
+# Core & Config
+pydantic>=2.4.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# API
+fastapi>=0.103.0
+uvicorn[standard]>=0.23.0
+
+# Messaging & Async
+pika>=1.3.2
+celery>=5.3.4
+redis>=5.0.0
+
+# ML & Vector DB
+chromadb>=0.4.14
+transformers>=4.34.0
+torch>=2.1.0
+sentence-transformers>=2.2.2
+# Note: torch might need a specific index url in Dockerfile for CPU-only to save space if needed,
+# but standard install is fine for now.
+
+# Ingestor / Scraping
+requests>=2.31.0
+schedule>=1.2.1
+beautifulsoup4>=4.12.2
+lxml>=4.9.3

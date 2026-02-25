@@ -1,0 +1,127 @@
+services:
+  # 1. The Main Database (PostgreSQL + TimescaleDB Extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: sentiment_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: sentiment_hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # 2. The Message Broker (RabbitMQ with UI)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sentiment_queue
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # TCP connection for your microservices
+      - "15672:15672" # Web UI for you to monitor the queues
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # 3. The Caching Layer (Redis for Python Deduplication)
+  redis:
+    image: redis:alpine
+    container_name: sentiment_cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # 4. The Vector Database (ChromaDB for Semantic Search)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: sentiment_vector_db
+    environment:
+      - IS_PERSISTENT=TRUE
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # 5. NLP Engine - The FastAPI
+  nlp-api:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_api
+    ports:
+      - "8001:8000" # Exposing on host 8001 to avoid conflict with ChromaDB
+    depends_on:
+      - rabbitmq
+      - redis
+      - chromadb
+    networks:
+      - backend_network
+    env_file:
+      - ./nlp-engine/.env
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # 6. NLP Engine - The Celery Worker
+  nlp-worker:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_worker
+    depends_on:
+      - rabbitmq
+      - redis
+      - chromadb
+    networks:
+      - backend_network
+    env_file:
+      - ./nlp-engine/.env
+    command: celery -A workers.celery_app worker --loglevel=info
+    restart: unless-stopped
+    
+  # 7. NLP Engine - The Ingestor (Cron Job)
+  nlp-ingestor:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_ingestor
+    depends_on:
+      - rabbitmq
+    networks:
+      - backend_network
+    env_file:
+      - ./nlp-engine/.env
+    # This command will run the main ingestor script.
+    # For a real cron job, you'd wrap this in a shell script with a loop and a sleep,
+    # or use a proper cron daemon inside the container.
+    command: python -m ingestor.main
+    # We don't restart this one, as it's designed to run and exit.
+    # You would typically trigger this on a schedule (e.g., with Kubernetes CronJob or a simple loop).
+    restart: on-failure
+
+
+# Named volumes so you don't lose data when you restart your computer
+volumes:
+  timescaledb_data:
+  rabbitmq_data:
+  redis_data:
+  chroma_data:
+
+# A shared network so all future Python/Java containers can talk to these by name
+networks:
+  backend_network:
+    driver: bridge
