@@ -1,7 +1,7 @@
 from celery import shared_task
 from core.config import settings
 from core.rabbitmq import rabbitmq_client
-from models.schemas import FinancialNewsItem, AnalyzedSentiment
+from models.schemas import FinancialNewsItem, AnalyzedArticle, EntitySentiment
 from services.ml_service import ml_service
 from services.chroma_service import chroma_service
 from services.redis_service import redis_service
@@ -26,12 +26,21 @@ def analyze_sentiment(**news_item_data):
             logger.info(f"Article already processed: {news_item.url}")
             return
 
-        # Sentiment Analysis
-        sentiment_result = ml_service.analyze_sentiment(news_item.text)
+        # Step A-D: Extract entities and their sentiment
+        entity_sentiments_data = ml_service.extract_entity_sentiments(news_item.text)
+        
+        # Convert to Pydantic models
+        entities = [EntitySentiment(**es) for es in entity_sentiments_data]
+
+        # Step E: Run FinBERT on the whole text for overall sentiment
+        overall_sentiment = ml_service.analyze_sentiment(news_item.text)
         
         # Vector Embedding
         embedding = ml_service.generate_embedding(news_item.text)
         
+        # Prepare entities for ChromaDB metadata (serialize to JSON string)
+        entities_json_str = json.dumps([e.model_dump() for e in entities])
+
         # Save to ChromaDB
         chroma_service.add_document(
             document_id=news_item.url,
@@ -41,17 +50,19 @@ def analyze_sentiment(**news_item_data):
                 "source": news_item.source,
                 "title": news_item.title,
                 "published_at": news_item.published_at.isoformat(),
-                "sentiment_label": sentiment_result["label"],
-                "sentiment_score": sentiment_result["score"]
+                "sentiment_label": overall_sentiment["label"],
+                "sentiment_score": overall_sentiment["score"],
+                "entities": entities_json_str
             }
         )
         
-        # Create output payload
-        analyzed_sentiment = AnalyzedSentiment(
+        # Step F: Create output payload
+        analyzed_article = AnalyzedArticle(
             url=news_item.url,
-            sentiment_label=sentiment_result["label"],
-            sentiment_score=sentiment_result["score"],
-            entities_mentioned=[], # TODO: Implement entity extraction if needed
+            overall_sentiment_label=overall_sentiment["label"],
+            overall_sentiment_score=overall_sentiment["score"],
+            entities=entities,
+            semantic_vector_id=news_item.url, # Using URL as ID for now
             processed_at=datetime.utcnow()
         )
         
@@ -60,7 +71,7 @@ def analyze_sentiment(**news_item_data):
         channel.basic_publish(
             exchange='',
             routing_key=settings.QUEUE_ANALYZED_SENTIMENT,
-            body=analyzed_sentiment.model_dump_json()
+            body=analyzed_article.model_dump_json()
         )
         
         # Mark as processed

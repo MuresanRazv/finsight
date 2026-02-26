@@ -12,12 +12,19 @@ class FinancialNewsItem(BaseModel):
     url: str = Field(..., description="URL of the article")
     published_at: datetime = Field(..., description="ISO-8601 timestamp of publication")
 
-class AnalyzedSentiment(BaseModel):
+class EntitySentiment(BaseModel):
+    name: str
+    ticker: Optional[str] = None
+    sentiment_score: float
+    sentiment_label: str
+
+class AnalyzedArticle(BaseModel):
     """
     Schema for analyzed sentiment pushed to the 'analyzed_sentiment' queue.
     """
     url: str = Field(..., description="URL of the article, used as unique ID")
-    sentiment_label: str = Field(..., description="Sentiment label: positive, negative, neutral")
-    sentiment_score: float = Field(..., ge=-1.0, le=1.0, description="Sentiment score between -1.0 and 1.0")
-    entities_mentioned: List[str] = Field(default_factory=list, description="List of entities mentioned in the text")
+    overall_sentiment_score: float = Field(..., ge=-1.0, le=1.0, description="Sentiment score between -1.0 and 1.0")
+    overall_sentiment_label: str = Field(..., description="Sentiment label: positive, negative, neutral")
+    entities: List[EntitySentiment] = Field(default_factory=list, description="List of entities mentioned in the text with their sentiment")
+    semantic_vector_id: Optional[str] = None
     processed_at: datetime = Field(default_factory=datetime.utcnow, description="ISO-8601 timestamp of processing")

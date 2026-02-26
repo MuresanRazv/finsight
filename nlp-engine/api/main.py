@@ -3,7 +3,9 @@ from pydantic import BaseModel
 from typing import List
 from services.ml_service import ml_service
 from services.chroma_service import chroma_service
+from models.schemas import EntitySentiment
 import logging
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +28,7 @@ class SearchResult(BaseModel):
     sentiment_label: str
     sentiment_score: float
     relevance_score: float
+    entities: List[EntitySentiment] = []
 
 @app.get("/health")
 async def health_check():
@@ -62,6 +65,15 @@ async def search_news(
                 # Convert distance to relevance score (simple inversion for now)
                 relevance_score = 1.0 / (1.0 + distance)
                 
+                # Parse entities from metadata
+                entities_json = metadata.get("entities", "[]")
+                try:
+                    entities_data = json.loads(entities_json)
+                    entities = [EntitySentiment(**e) for e in entities_data]
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse entities JSON for doc {doc_id}")
+                    entities = []
+                
                 search_results.append(SearchResult(
                     url=doc_id,
                     title=metadata.get("title", "Unknown Title"),
@@ -69,7 +81,8 @@ async def search_news(
                     published_at=metadata.get("published_at", ""),
                     sentiment_label=metadata.get("sentiment_label", "neutral"),
                     sentiment_score=metadata.get("sentiment_score", 0.0),
-                    relevance_score=relevance_score
+                    relevance_score=relevance_score,
+                    entities=entities
                 ))
                 
         return search_results

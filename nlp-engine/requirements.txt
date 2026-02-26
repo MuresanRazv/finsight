@@ -17,6 +17,8 @@ chromadb>=0.4.14
 transformers>=4.34.0
 torch>=2.1.0
 sentence-transformers>=2.2.2
+spacy>=3.7.0
+# After installing requirements, run: python -m spacy download en_core_web_sm
 # Note: torch might need a specific index url in Dockerfile for CPU-only to save space if needed,
 # but standard install is fine for now.
 
