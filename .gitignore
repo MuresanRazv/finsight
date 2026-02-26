@@ -7,8 +7,8 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
-AGENTS.md
-GEMINI.md
+#AGENTS.md
+#GEMINI.md
 
 # =========================
 # 2. Environment Variables & Secrets
@@ -39,20 +39,6 @@ celerybeat-schedule
 *.pth
 chroma_data/
 huggingface/
-
-# =========================
-# 4. Java / Spring Boot (core-api)
-# =========================
-target/
-build/
-!/.mvn/wrapper/maven-wrapper.jar
-*.class
-*.jar
-*.war
-*.ear
-*.nar
-.gradle/
-bin/
 
 # =========================
 # 5. Next.js / React (web-client)

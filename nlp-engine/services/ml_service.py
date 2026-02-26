@@ -47,6 +47,8 @@ class MLService:
         
         # Load MiniLM for vector embeddings
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Explicitly set max sequence length to ensure truncation works as expected
+        self.embedding_model.max_seq_length = 256
         
         # Load Spacy for sentence segmentation
         try:
@@ -76,6 +78,7 @@ class MLService:
         Generates vector embedding for the given text using MiniLM.
         Returns a list of floats.
         """
+        # SentenceTransformer handles truncation based on max_seq_length
         embedding = self.embedding_model.encode(text)
         return embedding.tolist()
 

@@ -113,6 +113,41 @@ services:
     # You would typically trigger this on a schedule (e.g., with Kubernetes CronJob or a simple loop).
     restart: on-failure
 
+  # 8. Core API - Spring Boot Microservice
+  core-api:
+    build:
+      context: ./core-api
+      dockerfile: Dockerfile
+    container_name: core_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - timescaledb
+      - rabbitmq
+    environment:
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_NAME=sentiment_hub
+      - DB_USER=admin
+      - DB_PASSWORD=rootpassword
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    networks:
+      - backend_network
+    restart: unless-stopped
+  
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: redis_insight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/db
+    networks:
+      - backend_network
+    restart: unless-stopped
 
 # Named volumes so you don't lose data when you restart your computer
 volumes:
@@ -120,6 +155,7 @@ volumes:
   rabbitmq_data:
   redis_data:
   chroma_data:
+  redisinsight_data:
 
 # A shared network so all future Python/Java containers can talk to these by name
 networks:

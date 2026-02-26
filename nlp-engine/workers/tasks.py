@@ -8,7 +8,8 @@ from services.redis_service import redis_service
 import json
 import logging
 import pika
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -35,35 +36,40 @@ def analyze_sentiment(**news_item_data):
         # Step E: Run FinBERT on the whole text for overall sentiment
         overall_sentiment = ml_service.analyze_sentiment(news_item.text)
         
-        # Vector Embedding
+        # Step A: Generate a secure UUID v4 string to serve as the semantic_vector_id
+        semantic_vector_id = str(uuid.uuid4())
+
+        # Step B: Pass the raw article text through the all-MiniLM-L6-v2 model to generate the embedding array
+        # (Truncate the text if it exceeds the model's token limit - handled by the model/library usually, but good to be aware)
         embedding = ml_service.generate_embedding(news_item.text)
         
         # Prepare entities for ChromaDB metadata (serialize to JSON string)
         entities_json_str = json.dumps([e.model_dump() for e in entities])
 
-        # Save to ChromaDB
+        # Step C: Upsert the generated embedding into the financial_articles ChromaDB collection
         chroma_service.add_document(
-            document_id=news_item.url,
+            document_id=semantic_vector_id,
             text=news_item.text,
             embedding=embedding,
             metadata={
+                "url": news_item.url,
+                "published_at": news_item.published_at.isoformat(),
                 "source": news_item.source,
                 "title": news_item.title,
-                "published_at": news_item.published_at.isoformat(),
                 "sentiment_label": overall_sentiment["label"],
                 "sentiment_score": overall_sentiment["score"],
                 "entities": entities_json_str
             }
         )
         
-        # Step F: Create output payload
+        # Step D: Assign the generated UUID to the semantic_vector_id field in the final AnalyzedArticle Pydantic model
         analyzed_article = AnalyzedArticle(
             url=news_item.url,
             overall_sentiment_label=overall_sentiment["label"],
             overall_sentiment_score=overall_sentiment["score"],
             entities=entities,
-            semantic_vector_id=news_item.url, # Using URL as ID for now
-            processed_at=datetime.utcnow()
+            semantic_vector_id=semantic_vector_id,
+            processed_at=datetime.now(timezone.utc)
         )
         
         # Push to RabbitMQ
@@ -71,7 +77,11 @@ def analyze_sentiment(**news_item_data):
         channel.basic_publish(
             exchange='',
             routing_key=settings.QUEUE_ANALYZED_SENTIMENT,
-            body=analyzed_article.model_dump_json()
+            body=analyzed_article.model_dump_json(),
+            properties=pika.BasicProperties(
+                content_type='application/json',
+                delivery_mode=2,  # make message persistent
+            )
         )
         
         # Mark as processed
