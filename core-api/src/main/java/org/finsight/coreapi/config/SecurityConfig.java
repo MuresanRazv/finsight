@@ -33,9 +33,10 @@ public class SecurityConfig {
                         req.requestMatchers(
                                         "/api/auth/**",
                                         "/ws-sentiment/**",
-                                        "/v3/api-docs/**",
-                                        "/swagger-ui/**",
-                                        "/swagger-ui.html"
+                                        "/api/docs/**",
+                                        "/api/docs-spec",
+                                        "/api/docs-spec/swagger-config/**",
+                                        "/api/swagger-ui/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

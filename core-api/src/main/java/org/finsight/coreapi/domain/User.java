@@ -29,6 +29,7 @@ public class User implements UserDetails {
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "role_enum")
     private Role role;
 
     @Override

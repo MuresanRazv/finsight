@@ -134,10 +134,28 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
+      - NLP_API_URL=http://nlp-api:8000
     networks:
       - backend_network
     restart: unless-stopped
   
+  # 9. Web Client - Next.js Frontend
+  web-client:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+    container_name: web_client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - core-api
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api
+      - INTERNAL_API_URL=http://core-api:8080/api
+    networks:
+      - backend_network
+    restart: unless-stopped
+
   redisinsight:
     image: redislabs/redisinsight:latest
     container_name: redis_insight
