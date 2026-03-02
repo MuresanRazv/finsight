@@ -1,6 +1,6 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { getSession } from "@/lib/session"
 import { SearchInput } from "@/lib/validations/search"
 
 const API_URL = process.env.INTERNAL_API_URL || "http://core-api:8080/api"
@@ -13,9 +13,9 @@ export type SearchResponse = {
 
 export async function semanticSearch(data: SearchInput): Promise<SearchResponse> {
   try {
-    const token = (await cookies()).get("finsight_session")?.value
+    const session = await getSession();
 
-    if (!token) {
+    if (!session.token) {
       return { success: false, message: "Unauthorized" }
     }
 
@@ -23,7 +23,7 @@ export async function semanticSearch(data: SearchInput): Promise<SearchResponse>
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Authorization": `Bearer ${session.token}`
       },
       body: JSON.stringify({
         query: data.query
