@@ -2,13 +2,14 @@
 
 import { getSession } from "@/lib/session"
 import { SearchInput } from "@/lib/validations/search"
+import { SearchResultItem } from "@/lib/types/search"
 
 const API_URL = process.env.INTERNAL_API_URL || "http://core-api:8080/api"
 
 export type SearchResponse = {
   success: boolean
   message?: string
-  data?: string
+  data?: SearchResultItem[]
 }
 
 export async function semanticSearch(data: SearchInput): Promise<SearchResponse> {
@@ -19,18 +20,18 @@ export async function semanticSearch(data: SearchInput): Promise<SearchResponse>
       return { success: false, message: "Unauthorized" }
     }
 
-    const response = await fetch(`${API_URL}/search/semantic`, {
-      method: "POST",
+    const queryString = new URLSearchParams({
+      query: data.query,
+      limit: "10"
+    }).toString()
+
+    const response = await fetch(`${API_URL}/search/semantic?${queryString}`, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${session.token}`
       },
-      body: JSON.stringify({
-        query: data.query
-      }),
     })
-
-    console.log(response)
 
     if (!response.ok) {
       try {
@@ -41,7 +42,7 @@ export async function semanticSearch(data: SearchInput): Promise<SearchResponse>
       }
     }
 
-    const result = await response.text()
+    const result: SearchResultItem[] = await response.json()
     return { success: true, data: result }
   } catch (error) {
     console.error("Search error:", error)

@@ -20,11 +20,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { searchSchema, SearchInput } from "@/lib/validations/search"
 import { semanticSearch } from "@/app/actions/search"
 import { SearchResult } from "@/components/search/SearchResult"
+import { SearchResultItem } from "@/lib/types/search"
 
 export default function SearchPage() {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<string | null>(null)
+  const [result, setResult] = useState<SearchResultItem[] | null>(null)
 
   const form = useForm<SearchInput>({
     resolver: zodResolver(searchSchema),
@@ -47,7 +48,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Semantic Search"
         description="Ask complex financial questions and get AI-powered insights."
@@ -96,14 +97,10 @@ export default function SearchPage() {
         )}
 
         {result && (
-          <Card>
-            <CardHeader>
-              <CardTitle>AI-Generated Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SearchResult content={result} />
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-white">Search Results</h2>
+            <SearchResult results={result} />
+          </div>
         )}
       </div>
     </div>
