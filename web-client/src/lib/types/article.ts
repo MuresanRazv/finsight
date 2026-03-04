@@ -1,0 +1,15 @@
+export interface EntitySentiment {
+    name: string;
+    ticker: string;
+    sentiment_score: number;
+    sentiment_label: string;
+}
+
+export interface ArticleDto {
+    url: string;
+    overall_sentiment_score: number;
+    overall_sentiment_label: string;
+    entities: EntitySentiment[];
+    semantic_vector_id: string;
+    processed_at: string;
+}

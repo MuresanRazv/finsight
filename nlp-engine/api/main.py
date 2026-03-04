@@ -75,7 +75,7 @@ async def search_news(
                     entities = []
                 
                 search_results.append(SearchResult(
-                    url=doc_id,
+                    url=metadata.get("url", "Unknown URL"),
                     title=metadata.get("title", "Unknown Title"),
                     source=metadata.get("source", "Unknown Source"),
                     published_at=metadata.get("published_at", ""),

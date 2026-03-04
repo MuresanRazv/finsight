@@ -1,12 +1,12 @@
 package org.finsight.coreapi.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-@Data
+import java.time.OffsetDateTime;
+
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,13 +19,17 @@ public class EntitySentiment {
     private Long id;
 
     private String name;
-    
     private String ticker;
-
     private Double sentimentScore;
     private String sentimentLabel;
 
+    @Column(name = "processed_at", nullable = false)
+    private OffsetDateTime processedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "article_url")
+    @JoinColumns({
+            @JoinColumn(name = "article_url", referencedColumnName = "url"),
+            @JoinColumn(name = "article_processed_at", referencedColumnName = "processed_at")
+    })
     private Article article;
 }
