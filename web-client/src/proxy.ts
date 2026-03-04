@@ -1,27 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {getSession} from "@/lib/session";
+import {refreshToken} from "@/app/actions/auth";
 
-export function proxy(request: NextRequest) {
-  const session = request.cookies.get("finsight_session")?.value;
+export async function proxy(request: NextRequest) {
+  const session = await getSession();
   const { pathname } = request.nextUrl;
 
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
-  
-  // Exclude API routes and static files from the check to avoid loops or breaking assets
-  const isApiOrStatic = pathname.startsWith("/api") || pathname.startsWith("/_next") || pathname.includes("favicon.ico");
-
-  if (isApiOrStatic) {
-    return NextResponse.next();
-  }
 
   // If the user is trying to access dashboard routes (non-auth) without the cookie
-  if (!isAuthPage && !session) {
+  if (!isAuthPage && !session.token) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // If a logged-in user tries to access /login or /register
-  if (isAuthPage && session) {
+  if (isAuthPage && session.token) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  const API_URL = process.env.INTERNAL_API_URL || "http://core-api:8080/api";
+
+  if (session.refreshToken) {
+    try {
+      const response = await fetch(`${API_URL}/user/me`, {
+        headers: {
+          "Authorization": `Bearer ${session.token}`
+        }
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        await refreshToken();
+      }
+    } catch (error) {
+      console.error("Error checking token validity:", error);
+    }
   }
 
   return NextResponse.next();
