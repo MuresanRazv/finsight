@@ -13,3 +13,11 @@ export interface ArticleDto {
     semantic_vector_id: string;
     processed_at: string;
 }
+
+export interface FilterDefinition {
+    key?: string;
+    label?: string;
+    type?: 'DATE_RANGE' | 'SELECT' | 'MULTI_SELECT';
+    options?: string[];
+    default_value?: any;
+}

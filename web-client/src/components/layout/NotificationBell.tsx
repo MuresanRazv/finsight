@@ -28,7 +28,8 @@ export function NotificationBell() {
     };
 
     // Subscribe to general sentiments
-    subscribe("/topic/sentiments", handleMessage);
+    // Subscribe only to specific tickers for now
+    // subscribe("/topic/sentiments", handleMessage);
 
     // Subscribe to user's specific tickers
     const fetchAndSubscribe = async () => {
