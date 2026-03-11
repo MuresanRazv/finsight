@@ -31,4 +31,9 @@ public class ChartController {
     ) {
         return chartService.getMyTickers(filters, userDetails.getUsername());
     }
+
+    @GetMapping("/general-market-sentiment")
+    public ChartDataResponse getGeneralMarketSentiment(@RequestParam Map<String, String> filters) {
+        return chartService.getGeneralMarketSentiment(filters);
+    }
 }

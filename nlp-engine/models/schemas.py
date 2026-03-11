@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -11,6 +11,12 @@ class FinancialNewsItem(BaseModel):
     text: str = Field(..., description="Body or summary of the article")
     url: str = Field(..., description="URL of the article")
     published_at: datetime = Field(..., description="ISO-8601 timestamp of publication")
+
+    @validator('text')
+    def text_must_not_be_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Article text cannot be empty')
+        return v
 
 class EntitySentiment(BaseModel):
     name: str

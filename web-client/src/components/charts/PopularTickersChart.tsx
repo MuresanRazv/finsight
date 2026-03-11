@@ -10,29 +10,25 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPopularTickers } from '@/app/actions/charts';
 import { ChartDataResponse } from '@/lib/types/charts';
 import { ChartFilters } from './ChartFilters';
 
-const CustomBar = (props: any) => {
-  const { x, y, width, height, payload } = props;
-  const score = payload.average_sentiment;
-  const isPositive = score > 0.5;
-  const fillColor = isPositive ? '#22c55e' : '#ef4444';
-
-  const arrowPath = isPositive
-    ? `M${x + width / 2},${y + 5} L${x + width / 2 - 5},${y + 15} L${x + width / 2 + 5},${y + 15} Z`
-    : `M${x + width / 2},${y + 15} L${x + width / 2 - 5},${y + 5} L${x + width / 2 + 5},${y + 5} Z`;
-
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill={fillColor} />
-      <path d={arrowPath} fill="white" />
-    </g>
-  );
-};
+const COLORS = [
+  '#2563eb', // blue-600
+  '#db2777', // pink-600
+  '#16a34a', // green-600
+  '#ea580c', // orange-600
+  '#9333ea', // purple-600
+  '#0891b2', // cyan-600
+  '#ca8a04', // yellow-600
+  '#dc2626', // red-600
+  '#4f46e5', // indigo-600
+  '#059669', // emerald-600
+];
 
 export function PopularTickersChart() {
   const [data, setData] = useState<ChartDataResponse | null>(null);
@@ -114,8 +110,26 @@ export function PopularTickersChart() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="ticker" />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" shape={CustomBar} />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-background border rounded p-2 shadow-sm text-sm">
+                          <p className="font-semibold">{label}</p>
+                          <p>Count: {data.count}</p>
+                          <p>Avg Sentiment: {typeof data.average_sentiment === 'number' ? data.average_sentiment.toFixed(2) : 'N/A'}</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="count">
+                  {chartData.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

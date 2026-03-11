@@ -2,6 +2,7 @@
 import { LatestArticlesChart } from '@/components/charts/LatestArticlesChart';
 import { MyTickersChart } from '@/components/charts/MyTickersChart';
 import { PopularTickersChart } from '@/components/charts/PopularTickersChart';
+import { GeneralMarketSentimentChart } from '@/components/charts/GeneralMarketSentimentChart';
 
 export default function DashboardPage() {
     return (
@@ -11,6 +12,9 @@ export default function DashboardPage() {
             </header>
 
             <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="lg:col-span-2">
+                    <GeneralMarketSentimentChart />
+                </div>
                 <div className="lg:col-span-2">
                     <MyTickersChart />
                 </div>

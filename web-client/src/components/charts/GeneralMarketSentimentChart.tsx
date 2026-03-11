@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getMyTickers } from '@/app/actions/charts';
+import { getGeneralMarketSentiment } from '@/app/actions/charts';
 import { ChartDataResponse } from "@/lib/types/charts";
 import { ChartFilters } from './ChartFilters';
 import { SentimentLegend } from './SentimentLegend';
@@ -52,7 +52,7 @@ const CustomActiveDot = (props: any) => {
   );
 };
 
-export function MyTickersChart() {
+export function GeneralMarketSentimentChart() {
   const [data, setData] = useState<ChartDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -62,7 +62,7 @@ export function MyTickersChart() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const result = await getMyTickers(filters);
+        const result = await getGeneralMarketSentiment(filters);
         setData(result);
 
         if (isInitialLoad.current && result.available_filters) {
@@ -79,7 +79,7 @@ export function MyTickersChart() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch my tickers:', error);
+        console.error('Failed to fetch general market sentiment:', error);
       } finally {
         setLoading(false);
       }
@@ -119,10 +119,9 @@ export function MyTickersChart() {
   }
 
   const chartData = Array.isArray(data?.data) ? data.data : [];
-  const lines = chartData.length > 0 ? Object.keys(chartData[0]).filter(k => k !== 'date') : [];
 
-  const getGradientStops = (ticker: string) => {
-    const values = chartData.map((d: any) => d[ticker] as number).filter((v: any) => typeof v === 'number');
+  const getGradientStops = () => {
+    const values = chartData.map((d: any) => d.sentiment as number).filter((v: any) => typeof v === 'number');
     if (values.length === 0) return null;
 
     const min = Math.min(...values);
@@ -163,7 +162,7 @@ export function MyTickersChart() {
   return (
     <Card className="w-full h-[500px] flex flex-col">
       <CardHeader>
-        <CardTitle>My Tickers</CardTitle>
+        <CardTitle>{data?.title || 'General Market Sentiment'}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 pb-4">
         <div className="flex justify-between items-start mb-2">
@@ -191,11 +190,9 @@ export function MyTickersChart() {
                 }}
               >
                 <defs>
-                  {lines.map(line => (
-                    <linearGradient key={line} id={`splitColor-${line}`} x1="0" y1="0" x2="0" y2="1">
-                      {getGradientStops(line)}
-                    </linearGradient>
-                  ))}
+                  <linearGradient id="splitColorSentiment" x1="0" y1="0" x2="0" y2="1">
+                    {getGradientStops()}
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -208,17 +205,15 @@ export function MyTickersChart() {
                   labelFormatter={(label) => formatDate(label as string)}
                 />
                 <Legend />
-                {lines.map((line) => (
-                  <Line
-                    key={line}
-                    type="monotone"
-                    dataKey={line}
-                    stroke={`url(#splitColor-${line})`}
-                    strokeWidth={2}
-                    dot={<CustomDot />}
-                    activeDot={<CustomActiveDot />}
-                  />
-                ))}
+                <Line
+                  type="monotone"
+                  dataKey="sentiment"
+                  name="Sentiment"
+                  stroke="url(#splitColorSentiment)"
+                  strokeWidth={2}
+                  dot={<CustomDot />}
+                  activeDot={<CustomActiveDot />}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

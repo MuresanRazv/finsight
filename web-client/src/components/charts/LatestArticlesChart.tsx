@@ -16,31 +16,35 @@ import { getLatestArticles } from '@/app/actions/charts';
 import { ChartDataResponse } from '@/lib/types/charts';
 import { ArticleDto } from '@/lib/types/article';
 import { ChartFilters } from './ChartFilters';
+import { SentimentLegend } from './SentimentLegend';
 
 // Helper function to format the tick
 const formatTick = (tick: string) => {
-  const parts = tick.split('-');
-  // take the last 3 parts of the url
-  return parts.slice(Math.max(parts.length - 3, 0)).join('-');
+  // If the tick is too long, truncate it
+  if (tick.length > 15) {
+      return tick.substring(0, 15) + '...';
+  }
+  return tick;
 };
 
 const CustomBar = (props: any) => {
   const { x, y, width, height, payload } = props;
   const score = payload.overall_sentiment_score;
-  const isPositive = score > 0.5;
-  const fillColor = isPositive ? '#22c55e' : '#ef4444';
-
-  const arrowPath = isPositive
-    ? `M${x + width / 2},${y + 5} L${x + width / 2 - 5},${y + 15} L${x + width / 2 + 5},${y + 15} Z`
-    : `M${x + width / 2},${y + 15} L${x + width / 2 - 5},${y + 5} L${x + width / 2 + 5},${y + 5} Z`;
+  
+  let fillColor = '#eab308'; // yellow-500
+  if (score > 0.70) {
+    fillColor = '#22c55e'; // green-500
+  } else if (score < 0.30) {
+    fillColor = '#ef4444'; // red-500
+  }
 
   return (
     <g>
       <rect x={x} y={y} width={width} height={height} fill={fillColor} />
-      <path d={arrowPath} fill="white" />
     </g>
   );
 };
+
 export function LatestArticlesChart() {
   const [data, setData] = useState<ChartDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,9 +93,15 @@ export function LatestArticlesChart() {
     );
   }
 
-  const chartData = Array.isArray(data?.data) ? (data.data as ArticleDto[]).map((article) => ({
+  const chartData = Array.isArray(data?.data) ? (data.data as ArticleDto[])
+    .slice() // Create a copy to avoid mutating state if strict mode
+    .reverse() // Sort oldest to latest
+    .map((article) => ({
     ...article,
-    name: article.url.split('/').pop()?.replace('.html', '') || '',
+    name: new Date(article.processed_at).toLocaleString(undefined, {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }),
+    fullUrl: article.url // Keep full url for tooltip if needed
   })) : [];
 
 
@@ -101,11 +111,14 @@ export function LatestArticlesChart() {
         <CardTitle>{data?.title || 'Latest Articles'}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 pb-4">
-        <ChartFilters
-            filters={data?.available_filters || []}
-            activeFilters={filters}
-            onFilterChange={handleFilterChange}
-        />
+        <div className="flex justify-between items-start mb-2">
+            <ChartFilters
+                filters={data?.available_filters || []}
+                activeFilters={filters}
+                onFilterChange={handleFilterChange}
+            />
+        </div>
+        <SentimentLegend />
         {chartData.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             No data found
@@ -119,7 +132,7 @@ export function LatestArticlesChart() {
                   top: 5,
                   right: 30,
                   left: 20,
-                  bottom: 5,
+                  bottom: 60, // Increased bottom margin for rotated labels
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -130,9 +143,27 @@ export function LatestArticlesChart() {
                   angle: -45,
                 }}
                 tickFormatter={formatTick}
+                interval={0} // Show all ticks
                 />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const value = payload[0].value;
+                      return (
+                        <div className="bg-background border rounded p-2 shadow-sm text-sm">
+                          <p className="font-semibold">{label}</p>
+                          <p>Sentiment Score: {typeof value === 'number' ? value.toFixed(2) : value}</p>
+                          {data.fullUrl && (
+                             <p className="text-xs text-muted-foreground max-w-[300px] truncate mt-1">{data.fullUrl}</p>
+                          )}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
                 <Bar dataKey="overall_sentiment_score" shape={CustomBar} />
               </BarChart>
             </ResponsiveContainer>

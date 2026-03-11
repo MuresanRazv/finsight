@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -63,7 +64,6 @@ public class ChartService {
     }
 
     public ChartDataResponse getPopularTickers(Map<String, String> filters) {
-        // Default to last 24 hours if not specified
         OffsetDateTime since = OffsetDateTime.now().minusHours(24);
         
         List<EntitySentiment> sentiments = entitySentimentRepository.findByProcessedAtAfter(since);
@@ -95,7 +95,7 @@ public class ChartService {
                 .chartId("popular-tickers")
                 .title("Popular Tickers (Last 24h)")
                 .description("Tickers with the most mentions in the last 24 hours")
-                .availableFilters(List.of()) // No filters for now, but easy to add time range
+                .availableFilters(List.of()) 
                 .data(data)
                 .build();
     }
@@ -115,7 +115,6 @@ public class ChartService {
         }
 
         String ticker = filters.getOrDefault("ticker", userTickers.get(0));
-        // Ensure the requested ticker is in the user's list
         if (!userTickers.contains(ticker)) {
             ticker = userTickers.get(0);
         }
@@ -158,6 +157,63 @@ public class ChartService {
                                 .options(userTickers)
                                 .defaultValue(userTickers.get(0))
                                 .build(),
+                        FilterDefinition.builder()
+                                .key("range")
+                                .label("Time Range")
+                                .type(FilterType.SELECT)
+                                .options(List.of("24h", "7d", "30d"))
+                                .defaultValue("24h")
+                                .build()
+                ))
+                .data(timeSeries)
+                .build();
+    }
+
+    public ChartDataResponse getGeneralMarketSentiment(Map<String, String> filters) {
+        String range = filters.getOrDefault("range", "24h");
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime start;
+        ChronoUnit groupingUnit;
+
+        switch (range) {
+            case "7d":
+                start = now.minusDays(7);
+                groupingUnit = ChronoUnit.DAYS;
+                break;
+            case "30d":
+                start = now.minusDays(30);
+                groupingUnit = ChronoUnit.DAYS;
+                break;
+            default:
+                start = now.minusHours(24);
+                groupingUnit = ChronoUnit.HOURS;
+                break;
+        }
+
+        List<Article> articles = articleRepository.findByProcessedAtBetween(start, now);
+
+        // Group articles by time unit (hour or day) and calculate average sentiment
+        Map<OffsetDateTime, Double> aggregatedSentiment = articles.stream()
+                .collect(Collectors.groupingBy(
+                        article -> article.getProcessedAt().truncatedTo(groupingUnit),
+                        Collectors.averagingDouble(Article::getOverallSentimentScore)
+                ));
+
+        List<Map<String, Object>> timeSeries = aggregatedSentiment.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> {
+                    Map<String, Object> point = new HashMap<>();
+                    point.put("date", entry.getKey());
+                    point.put("sentiment", entry.getValue());
+                    return point;
+                })
+                .collect(Collectors.toList());
+
+        return ChartDataResponse.builder()
+                .chartId("general-market-sentiment")
+                .title("General Market Sentiment")
+                .description("Aggregated sentiment of all articles over time")
+                .availableFilters(List.of(
                         FilterDefinition.builder()
                                 .key("range")
                                 .label("Time Range")

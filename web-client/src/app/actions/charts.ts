@@ -48,3 +48,7 @@ export async function getMyTickers(filters: Record<string, string> = {}) {
 export async function getLatestArticles(filters: Record<string, string> = {}) {
   return fetchWithAuth<ChartDataResponse>('/charts/latest-articles', filters);
 }
+
+export async function getGeneralMarketSentiment(filters: Record<string, string> = {}) {
+  return fetchWithAuth<ChartDataResponse>('/charts/general-market-sentiment', filters);
+}
