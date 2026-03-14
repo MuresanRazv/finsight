@@ -114,9 +114,11 @@ public class ChartService {
                     .build();
         }
 
-        String ticker = filters.getOrDefault("ticker", userTickers.get(0));
-        if (!userTickers.contains(ticker)) {
-            ticker = userTickers.get(0);
+        String tickerFilter = filters.getOrDefault("ticker", "");
+        boolean fetchAll = tickerFilter.isEmpty() || "All".equalsIgnoreCase(tickerFilter);
+
+        if (!fetchAll && !userTickers.contains(tickerFilter)) {
+            fetchAll = true;
         }
 
         String range = filters.getOrDefault("range", "24h");
@@ -133,29 +135,48 @@ public class ChartService {
                 break;
         }
 
-        List<EntitySentiment> sentiments = entitySentimentRepository.findByTickerAndProcessedAtAfter(ticker, since);
+        List<String> targetTickers = fetchAll ? userTickers : List.of(tickerFilter);
+        List<EntitySentiment> sentiments = entitySentimentRepository.findByTickerInAndProcessedAtAfter(targetTickers, since);
 
-        List<Map<String, Object>> timeSeries = sentiments.stream()
-                .sorted(Comparator.comparing(EntitySentiment::getProcessedAt))
-                .map(s -> {
-                    Map<String, Object> point = new HashMap<>();
-                    point.put("date", s.getProcessedAt());
-                    point.put("sentiment", s.getSentimentScore());
-                    return point;
-                })
-                .collect(Collectors.toList());
+        Map<OffsetDateTime, Map<String, Object>> groupedData = new TreeMap<>();
+
+        for (EntitySentiment s : sentiments) {
+            OffsetDateTime time = s.getProcessedAt();
+            groupedData.putIfAbsent(time, new HashMap<>());
+            Map<String, Object> point = groupedData.get(time);
+            point.put("date", time);
+
+            double confidence = s.getSentimentScore();
+            String label = s.getSentimentLabel() != null ? s.getSentimentLabel().toLowerCase() : "neutral";
+
+            // Map the sentiment into a -1 to 1 scale for the chart, so negative sentiment renders below zero
+            // and we can use a fixed gradient.
+            double plotValue = confidence;
+            if ("negative".equals(label)) {
+                plotValue = -confidence;
+            } else if ("neutral".equals(label)) {
+                plotValue = 0; // Neutral is at 0
+            }
+
+            String ticker = s.getTicker();
+            point.put(ticker, plotValue);
+            point.put(ticker + "_label", label);
+            point.put(ticker + "_confidence", confidence);
+        }
+
+        List<Map<String, Object>> timeSeries = new ArrayList<>(groupedData.values());
 
         return ChartDataResponse.builder()
                 .chartId("my-tickers")
-                .title("My Tickers Sentiment: " + ticker)
-                .description("Sentiment trend for " + ticker + " over the last " + range)
+                .title(fetchAll ? "My Tickers Sentiment" : "My Tickers Sentiment: " + tickerFilter)
+                .description("Sentiment trend for " + (fetchAll ? "your tickers" : tickerFilter) + " over the last " + range)
                 .availableFilters(List.of(
                         FilterDefinition.builder()
                                 .key("ticker")
                                 .label("Ticker Symbol")
                                 .type(FilterType.SELECT)
                                 .options(userTickers)
-                                .defaultValue(userTickers.get(0))
+                                .defaultValue("")
                                 .build(),
                         FilterDefinition.builder()
                                 .key("range")
@@ -193,10 +214,17 @@ public class ChartService {
         List<Article> articles = articleRepository.findByProcessedAtBetween(start, now);
 
         // Group articles by time unit (hour or day) and calculate average sentiment
+        // Here we also need to map to -1 to 1 based on label to have a coherent chart
         Map<OffsetDateTime, Double> aggregatedSentiment = articles.stream()
                 .collect(Collectors.groupingBy(
                         article -> article.getProcessedAt().truncatedTo(groupingUnit),
-                        Collectors.averagingDouble(Article::getOverallSentimentScore)
+                        Collectors.averagingDouble(article -> {
+                            double conf = article.getOverallSentimentScore();
+                            String label = article.getOverallSentimentLabel() != null ? article.getOverallSentimentLabel().toLowerCase() : "neutral";
+                            if ("negative".equals(label)) return -conf;
+                            if ("neutral".equals(label)) return 0.0;
+                            return conf;
+                        })
                 ));
 
         List<Map<String, Object>> timeSeries = aggregatedSentiment.entrySet().stream()
