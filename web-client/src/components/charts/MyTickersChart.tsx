@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getMyTickers } from '@/app/actions/charts';
@@ -24,9 +25,9 @@ const CustomDot = (props: any) => {
   if (value === undefined || value === null) return null;
 
   let color = '#eab308'; // yellow-500
-  if (value > 0.70) {
+  if (value > 0.3) {
     color = '#22c55e'; // green-500
-  } else if (value < 0.30) {
+  } else if (value < -0.3) {
     color = '#ef4444'; // red-500
   }
   
@@ -41,9 +42,9 @@ const CustomActiveDot = (props: any) => {
   if (value === undefined || value === null) return null;
 
   let color = '#eab308'; // yellow-500
-  if (value > 0.70) {
+  if (value > 0.3) {
     color = '#22c55e'; // green-500
-  } else if (value < 0.30) {
+  } else if (value < -0.3) {
     color = '#ef4444'; // red-500
   }
 
@@ -119,7 +120,16 @@ export function MyTickersChart() {
   }
 
   const chartData = Array.isArray(data?.data) ? data.data : [];
-  const lines = chartData.length > 0 ? Object.keys(chartData[0]).filter(k => k !== 'date') : [];
+  
+  const linesSet = new Set<string>();
+  chartData.forEach(item => {
+    Object.keys(item).forEach(k => {
+      if (k !== 'date' && !k.endsWith('_label') && !k.endsWith('_confidence')) {
+        linesSet.add(k);
+      }
+    });
+  });
+  const lines = Array.from(linesSet);
 
   const getGradientStops = (ticker: string) => {
     const values = chartData.map((d: any) => d[ticker] as number).filter((v: any) => typeof v === 'number');
@@ -129,7 +139,8 @@ export function MyTickersChart() {
     const max = Math.max(...values);
     const range = max - min;
     
-    const getColor = (val: number) => val > 0.70 ? '#22c55e' : (val < 0.30 ? '#ef4444' : '#eab308');
+    // Now positive is > 0.3, neutral is -0.3 to 0.3, negative is < -0.3
+    const getColor = (val: number) => val > 0.3 ? '#22c55e' : (val < -0.3 ? '#ef4444' : '#eab308');
 
     if (range === 0) {
       const color = getColor(max);
@@ -144,16 +155,16 @@ export function MyTickersChart() {
     const stops = [];
     stops.push(<stop key="start" offset="0%" stopColor={getColor(max)} />);
     
-    if (min < 0.70 && max > 0.70) {
-      const off = (max - 0.70) / range;
-      stops.push(<stop key="70-1" offset={off} stopColor="#22c55e" />);
-      stops.push(<stop key="70-2" offset={off} stopColor="#eab308" />);
+    if (min < 0.3 && max > 0.3) {
+      const off = (max - 0.3) / range;
+      stops.push(<stop key="pos-1" offset={off} stopColor="#22c55e" />);
+      stops.push(<stop key="pos-2" offset={off} stopColor="#eab308" />);
     }
     
-    if (min < 0.30 && max > 0.30) {
-      const off = (max - 0.30) / range;
-      stops.push(<stop key="30-1" offset={off} stopColor="#eab308" />);
-      stops.push(<stop key="30-2" offset={off} stopColor="#ef4444" />);
+    if (min < -0.3 && max > -0.3) {
+      const off = (max - (-0.3)) / range;
+      stops.push(<stop key="neg-1" offset={off} stopColor="#eab308" />);
+      stops.push(<stop key="neg-2" offset={off} stopColor="#ef4444" />);
     }
     
     stops.push(<stop key="end" offset="100%" stopColor={getColor(min)} />);
@@ -171,6 +182,7 @@ export function MyTickersChart() {
                 filters={data?.available_filters || []}
                 activeFilters={filters}
                 onFilterChange={handleFilterChange}
+                showAllOption={true}
             />
         </div>
         <SentimentLegend />
@@ -202,10 +214,39 @@ export function MyTickersChart() {
                   dataKey="date" 
                   tickFormatter={formatDate}
                 />
-                <YAxis domain={[0, 1]} />
+                <YAxis domain={[-1, 1]} tickFormatter={(val) => val === 0 ? '0' : val.toFixed(1)} />
+                <ReferenceLine y={0} stroke="#444" strokeDasharray="3 3" />
                 <Tooltip 
-                  formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value}
                   labelFormatter={(label) => formatDate(label as string)}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-background border rounded p-2 shadow-sm text-sm">
+                          <p className="font-semibold mb-1">{formatDate(label as string)}</p>
+                          {payload.map((entry, index) => {
+                            const data = entry.payload;
+                            const ticker = entry.dataKey as string;
+                            const conf = data[`${ticker}_confidence`];
+                            const lbl = data[`${ticker}_label`];
+                            const val = entry.value as number;
+                            
+                            // fallback if backend doesn't send the extra keys
+                            const displayConf = conf !== undefined ? conf : Math.abs(val);
+                            const displayLbl = lbl !== undefined ? lbl : (val > 0.3 ? 'positive' : val < -0.3 ? 'negative' : 'neutral');
+                            
+                            return (
+                              <div key={index} style={{ color: entry.color }} className="mb-1">
+                                <span className="font-bold">{ticker}:</span>{' '}
+                                <span className="capitalize">{displayLbl}</span>{' '}
+                                ({(displayConf * 100).toFixed(0)}% confidence)
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
                 {lines.map((line) => (
@@ -213,10 +254,12 @@ export function MyTickersChart() {
                     key={line}
                     type="monotone"
                     dataKey={line}
+                    name={line}
                     stroke={`url(#splitColor-${line})`}
                     strokeWidth={2}
                     dot={<CustomDot />}
                     activeDot={<CustomActiveDot />}
+                    connectNulls={true}
                   />
                 ))}
               </LineChart>

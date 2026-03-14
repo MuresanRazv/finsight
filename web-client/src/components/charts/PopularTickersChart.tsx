@@ -100,6 +100,7 @@ export function PopularTickersChart() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
+                layout="vertical"
                 margin={{
                   top: 5,
                   right: 30,
@@ -108,8 +109,8 @@ export function PopularTickersChart() {
                 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="ticker" />
-                <YAxis />
+                <XAxis type="number" />
+                <YAxis dataKey="ticker" type="category" width={80} />
                 <Tooltip 
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
@@ -125,7 +126,7 @@ export function PopularTickersChart() {
                     return null;
                   }}
                 />
-                <Bar dataKey="count">
+                <Bar dataKey="count" layout="vertical">
                   {chartData.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}

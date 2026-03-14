@@ -7,9 +7,10 @@ interface ChartFiltersProps {
   filters: FilterDefinition[];
   activeFilters: Record<string, any>;
   onFilterChange: (key: string, value: any) => void;
+  showAllOption?: boolean;
 }
 
-export function ChartFilters({ filters, activeFilters, onFilterChange }: ChartFiltersProps) {
+export function ChartFilters({ filters, activeFilters, onFilterChange, showAllOption = false }: ChartFiltersProps) {
   if (!filters || filters.length === 0) return null;
 
   return (
@@ -37,10 +38,11 @@ export function ChartFilters({ filters, activeFilters, onFilterChange }: ChartFi
               <select
                 id={filter.key}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={activeFilters[filter.key] || ''}
+                value={activeFilters[filter.key] || filter.default_value || ''}
                 onChange={(e) => onFilterChange(filter.key!, e.target.value)}
               >
-                <option value="">All</option>
+                {/* Only show 'All' option if showAllOption is true AND the filter is NOT a time range */}
+                {showAllOption && filter.key !== 'range' && <option value="">All</option>}
                 {filter.options?.map((option) => (
                   <option key={option} value={option}>
                     {option}

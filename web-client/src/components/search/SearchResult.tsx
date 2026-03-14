@@ -24,19 +24,16 @@ export function SearchResult({ results }: SearchResultProps) {
 }
 
 function SearchResultCard({ result }: { result: SearchResultItem }) {
-  const sentimentColor =
-    result.sentiment_label === "positive"
-      ? "text-emerald-500"
-      : result.sentiment_label === "negative"
-      ? "text-red-500"
-      : "text-yellow-500"
+  let sentimentColor = "text-yellow-500"
+  let SentimentIcon = Minus
 
-  const SentimentIcon =
-    result.sentiment_label === "positive"
-      ? TrendingUp
-      : result.sentiment_label === "negative"
-      ? TrendingDown
-      : Minus
+  if (result.sentiment_label === "positive") {
+    sentimentColor = "text-emerald-500"
+    SentimentIcon = TrendingUp
+  } else if (result.sentiment_label === "negative") {
+    sentimentColor = "text-red-500"
+    SentimentIcon = TrendingDown
+  }
 
   return (
     <Card className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
@@ -66,7 +63,7 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
               <span className="capitalize">{result.sentiment_label}</span>
             </div>
             <span className="text-xs opacity-80">
-              Score: {result.sentiment_score.toFixed(2)}
+              Confidence Score: {result.sentiment_score.toFixed(2)}
             </span>
           </div>
         </div>

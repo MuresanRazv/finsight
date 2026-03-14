@@ -3,54 +3,21 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getGeneralMarketSentiment } from '@/app/actions/charts';
 import { ChartDataResponse } from "@/lib/types/charts";
-import { ChartFilters } from './ChartFilters';
 import { SentimentLegend } from './SentimentLegend';
-
-const CustomDot = (props: any) => {
-  const { cx, cy, value } = props;
-  
-  if (value === undefined || value === null) return null;
-
-  let color = '#eab308'; // yellow-500
-  if (value > 0.70) {
-    color = '#22c55e'; // green-500
-  } else if (value < 0.30) {
-    color = '#ef4444'; // red-500
-  }
-  
-  return (
-    <circle cx={cx} cy={cy} r={4} fill={color} strokeWidth={0} />
-  );
-};
-
-const CustomActiveDot = (props: any) => {
-  const { cx, cy, value } = props;
-  
-  if (value === undefined || value === null) return null;
-
-  let color = '#eab308'; // yellow-500
-  if (value > 0.70) {
-    color = '#22c55e'; // green-500
-  } else if (value < 0.30) {
-    color = '#ef4444'; // red-500
-  }
-
-  return (
-    <circle cx={cx} cy={cy} r={6} fill={color} stroke="white" strokeWidth={2} />
-  );
-};
+import { ChartFilters } from './ChartFilters';
 
 export function GeneralMarketSentimentChart() {
   const [data, setData] = useState<ChartDataResponse | null>(null);
@@ -64,7 +31,7 @@ export function GeneralMarketSentimentChart() {
       try {
         const result = await getGeneralMarketSentiment(filters);
         setData(result);
-
+        
         if (isInitialLoad.current && result.available_filters) {
           isInitialLoad.current = false;
           const defaultFilters = result.available_filters.reduce((acc, filter) => {
@@ -128,34 +95,34 @@ export function GeneralMarketSentimentChart() {
     const max = Math.max(...values);
     const range = max - min;
     
-    const getColor = (val: number) => val > 0.70 ? '#22c55e' : (val < 0.30 ? '#ef4444' : '#eab308');
+    const getColor = (val: number) => val > 0.3 ? '#22c55e' : (val < -0.3 ? '#ef4444' : '#eab308');
 
     if (range === 0) {
       const color = getColor(max);
       return (
         <>
-          <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor={color} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.8}/>
+          <stop offset="100%" stopColor={color} stopOpacity={0.2}/>
         </>
       );
     }
 
     const stops = [];
-    stops.push(<stop key="start" offset="0%" stopColor={getColor(max)} />);
+    stops.push(<stop key="start" offset="0%" stopColor={getColor(max)} stopOpacity={0.8} />);
     
-    if (min < 0.70 && max > 0.70) {
-      const off = (max - 0.70) / range;
-      stops.push(<stop key="70-1" offset={off} stopColor="#22c55e" />);
-      stops.push(<stop key="70-2" offset={off} stopColor="#eab308" />);
+    if (min < 0.3 && max > 0.3) {
+      const off = (max - 0.3) / range;
+      stops.push(<stop key="pos-1" offset={off} stopColor="#22c55e" stopOpacity={0.5} />);
+      stops.push(<stop key="pos-2" offset={off} stopColor="#eab308" stopOpacity={0.5} />);
     }
     
-    if (min < 0.30 && max > 0.30) {
-      const off = (max - 0.30) / range;
-      stops.push(<stop key="30-1" offset={off} stopColor="#eab308" />);
-      stops.push(<stop key="30-2" offset={off} stopColor="#ef4444" />);
+    if (min < -0.3 && max > -0.3) {
+      const off = (max - (-0.3)) / range;
+      stops.push(<stop key="neg-1" offset={off} stopColor="#eab308" stopOpacity={0.5} />);
+      stops.push(<stop key="neg-2" offset={off} stopColor="#ef4444" stopOpacity={0.5} />);
     }
     
-    stops.push(<stop key="end" offset="100%" stopColor={getColor(min)} />);
+    stops.push(<stop key="end" offset="100%" stopColor={getColor(min)} stopOpacity={0.2} />);
     return stops;
   };
 
@@ -180,7 +147,7 @@ export function GeneralMarketSentimentChart() {
         ) : (
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
+              <AreaChart
                 data={chartData}
                 margin={{
                   top: 5,
@@ -190,7 +157,7 @@ export function GeneralMarketSentimentChart() {
                 }}
               >
                 <defs>
-                  <linearGradient id="splitColorSentiment" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="splitColorSentimentArea" x1="0" y1="0" x2="0" y2="1">
                     {getGradientStops()}
                   </linearGradient>
                 </defs>
@@ -199,22 +166,40 @@ export function GeneralMarketSentimentChart() {
                   dataKey="date" 
                   tickFormatter={formatDate}
                 />
-                <YAxis domain={[0, 1]} />
+                <YAxis domain={[-1, 1]} tickFormatter={(val) => val === 0 ? '0' : val.toFixed(1)} />
+                <ReferenceLine y={0} stroke="#444" strokeDasharray="3 3" />
                 <Tooltip 
-                  formatter={(value: any) => typeof value === 'number' ? value.toFixed(2) : value}
                   labelFormatter={(label) => formatDate(label as string)}
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const val = payload[0].value as number;
+                      const displayConf = Math.abs(val);
+                      const displayLbl = val > 0.3 ? 'positive' : val < -0.3 ? 'negative' : 'neutral';
+                      
+                      return (
+                        <div className="bg-background border rounded p-2 shadow-sm text-sm">
+                          <p className="font-semibold mb-1">{formatDate(label as string)}</p>
+                          <div style={{ color: payload[0].color }} className="mb-1">
+                            <span className="font-bold">Market:</span>{' '}
+                            <span className="capitalize">{displayLbl}</span>{' '}
+                            ({(displayConf * 100).toFixed(0)}% aggregated confidence)
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Legend />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="sentiment"
-                  name="Sentiment"
-                  stroke="url(#splitColorSentiment)"
+                  name="Aggregated Sentiment"
+                  stroke="url(#splitColorSentimentArea)"
+                  fill="url(#splitColorSentimentArea)"
                   strokeWidth={2}
-                  dot={<CustomDot />}
-                  activeDot={<CustomActiveDot />}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
