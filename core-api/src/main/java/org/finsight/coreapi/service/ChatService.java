@@ -1,0 +1,61 @@
+package org.finsight.coreapi.service;
+
+import lombok.RequiredArgsConstructor;
+import org.finsight.coreapi.domain.Article;
+import org.finsight.coreapi.dto.*;
+import org.finsight.coreapi.repository.ArticleRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ChatService {
+
+    private final WebClient.Builder webClientBuilder;
+    private final ArticleRepository articleRepository;
+
+    @Value("${nlp.api.url}")
+    private String nlpApiUrl;
+
+    public RichChatResponseDto processChatQuery(ChatRequestDto chatRequest) {
+        WebClient webClient = webClientBuilder.baseUrl(nlpApiUrl).build();
+
+        NlpChatResponseDto nlpResponse = webClient.post()
+                .uri("/api/chat")
+                .bodyValue(chatRequest)
+                .retrieve()
+                .bodyToMono(NlpChatResponseDto.class)
+                .block();
+
+        if (nlpResponse == null || nlpResponse.getSourceUrls() == null || nlpResponse.getSourceUrls().isEmpty()) {
+            return new RichChatResponseDto(
+                    nlpResponse != null ? nlpResponse.getAnswer() : "No response from NLP Engine.",
+                    Collections.emptyList()
+            );
+        }
+
+        List<Article> articles = articleRepository.findByUrlIn(nlpResponse.getSourceUrls());
+
+        List<ArticleStatsDto> articleStats = articles.stream()
+                .map(article -> new ArticleStatsDto(
+                        article.getUrl(),
+                        article.getOverallSentimentLabel(),
+                        article.getEntities().stream()
+                                .map(entity -> new EntitySentimentDto(
+                                        entity.getName(),
+                                        entity.getTicker(),
+                                        entity.getSentimentScore(),
+                                        entity.getSentimentLabel()
+                                ))
+                                .toList()
+                ))
+                .toList();
+
+        return new RichChatResponseDto(nlpResponse.getAnswer(), articleStats);
+    }
+}

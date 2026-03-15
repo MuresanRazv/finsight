@@ -87,7 +87,7 @@ class MLService:
         Extracts entities, maps them to tickers, and calculates sentiment 
         based on the sentences they appear in.
         """
-        # Step A: Run NER
+        # Run NER
         ner_results = self.ner_pipeline(text)
         
         # Filter for ORG entities and deduplicate
@@ -96,7 +96,7 @@ class MLService:
             if entity['entity_group'] == 'ORG':
                 unique_entities.add(entity['word'])
         
-        # Step B: Map to tickers
+        # Map to tickers
         mapped_entities = []
         for entity_name in unique_entities:
             # Simple matching, could be improved with fuzzy matching
@@ -117,7 +117,7 @@ class MLService:
         if not mapped_entities:
             return []
 
-        # Step C: Extract sentences
+        # Extract sentences
         doc = self.nlp(text)
         entity_sentiments = []
 
@@ -135,7 +135,7 @@ class MLService:
             # Combine sentences for context
             entity_context = " ".join(relevant_sentences)
             
-            # Step D: Run FinBERT on specific sentences
+            # Run FinBERT on specific sentences
             sentiment = self.analyze_sentiment(entity_context)
             
             entity_sentiments.append({

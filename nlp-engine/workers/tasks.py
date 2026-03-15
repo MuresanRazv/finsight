@@ -27,26 +27,26 @@ def analyze_sentiment(**news_item_data):
             logger.info(f"Article already processed: {news_item.url}")
             return
 
-        # Step A-D: Extract entities and their sentiment
+        # Extract entities and their sentiment
         entity_sentiments_data = ml_service.extract_entity_sentiments(news_item.text)
         
         # Convert to Pydantic models
         entities = [EntitySentiment(**es) for es in entity_sentiments_data]
 
-        # Step E: Run FinBERT on the whole text for overall sentiment
+        # Run FinBERT on the whole text for overall sentiment
         overall_sentiment = ml_service.analyze_sentiment(news_item.text)
         
-        # Step A: Generate a secure UUID v4 string to serve as the semantic_vector_id
+        # Generate a secure UUID v4 string to serve as the semantic_vector_id
         semantic_vector_id = str(uuid.uuid4())
 
-        # Step B: Pass the raw article text through the all-MiniLM-L6-v2 model to generate the embedding array
+        # Pass the raw article text through the all-MiniLM-L6-v2 model to generate the embedding array
         # (Truncate the text if it exceeds the model's token limit - handled by the model/library usually, but good to be aware)
         embedding = ml_service.generate_embedding(news_item.text)
         
         # Prepare entities for ChromaDB metadata (serialize to JSON string)
         entities_json_str = json.dumps([e.model_dump() for e in entities])
 
-        # Step C: Upsert the generated embedding into the financial_articles ChromaDB collection
+        # Upsert the generated embedding into the financial_articles ChromaDB collection
         chroma_service.add_document(
             document_id=semantic_vector_id,
             text=news_item.text,
@@ -62,7 +62,7 @@ def analyze_sentiment(**news_item_data):
             }
         )
         
-        # Step D: Assign the generated UUID to the semantic_vector_id field in the final AnalyzedArticle Pydantic model
+        # Assign the generated UUID to the semantic_vector_id field in the final AnalyzedArticle Pydantic model
         analyzed_article = AnalyzedArticle(
             url=news_item.url,
             overall_sentiment_label=overall_sentiment["label"],

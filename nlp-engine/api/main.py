@@ -1,11 +1,16 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from typing import List
+
+from core.config import settings
 from services.ml_service import ml_service
 from services.chroma_service import chroma_service
 from models.schemas import EntitySentiment
 import logging
 import json
+
+from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +20,19 @@ app = FastAPI(
     title="NLP Engine API",
     description="API for semantic search and sentiment analysis of financial news.",
     version="1.0.0"
+)
+
+# Initialize
+llm = Ollama(
+    base_url=settings.LLM_HOST,
+    model=settings.LLM_MODEL,
+    temperature=0
+)
+
+# Define Prompt Template
+rag_prompt = PromptTemplate(
+    template="You are a strict financial AI analyst. You must answer the user's question based ONLY on the provided context. Do not use external knowledge. If the context does not contain the answer, reply exactly with: 'I do not have enough information in my database to answer this.'\n\nContext: {context}\n\nQuestion: {question}\n\nAnswer:",
+    input_variables=["context", "question"]
 )
 
 class SearchResult(BaseModel):
@@ -29,6 +47,13 @@ class SearchResult(BaseModel):
     sentiment_score: float
     relevance_score: float
     entities: List[EntitySentiment] = []
+
+class ChatRequest(BaseModel):
+    query: str
+
+class ChatResponse(BaseModel):
+    answer: str
+    source_urls: List[str]
 
 @app.get("/health")
 async def health_check():
@@ -53,7 +78,7 @@ async def search_news(
         results = chroma_service.query_documents(query_embedding, n_results=limit)
         
         search_results = []
-        if results and results['ids']:
+        if results and results.get('ids') and len(results['ids']) > 0:
             ids = results['ids'][0]
             metadatas = results['metadatas'][0]
             distances = results['distances'][0]
@@ -89,4 +114,41 @@ async def search_news(
         
     except Exception as e:
         logger.error(f"Search failed: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_endpoint(request: ChatRequest):
+    """
+    RAG Endpoint for querying financial articles using an LLM.
+    """
+    try:
+        # Convert the query into a vector
+        query_embedding = ml_service.generate_embedding(request.query)
+
+        # Query ChromaDB for top 5 documents
+        results = chroma_service.query_documents(query_embedding, n_results=5)
+        
+        # Extract raw text and join into context
+        context_docs = []
+        source_urls = []
+        
+        if results and results.get('documents') and len(results['documents']) > 0:
+            context_docs = results['documents'][0]
+            metadatas = results['metadatas'][0]
+            # Collect source URLs and filter out None
+            source_urls = [meta.get("url") for meta in metadatas if meta and "url" in meta]
+            
+        context = "\n\n".join(context_docs)
+
+        # Pass context and query to LangChain and Ollama
+        chain = rag_prompt | llm
+        answer = chain.invoke({"context": context, "question": request.query})
+        
+        # Return JSON response
+        return ChatResponse(
+            answer=answer,
+            source_urls=source_urls
+        )
+    except Exception as e:
+        logger.error(f"Chat RAG failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

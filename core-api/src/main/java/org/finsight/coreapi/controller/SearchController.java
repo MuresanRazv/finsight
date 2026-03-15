@@ -6,7 +6,7 @@ import org.finsight.coreapi.dto.SearchQuery;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @RestController
 @RequestMapping("/api/search")
@@ -14,7 +14,7 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 public class SearchController {
 
-    private final RestTemplate restTemplate;
+    private final WebClient.Builder webClientBuilder;
 
     @Value("${nlp.api.url}")
     private String nlpApiUrl;
@@ -23,7 +23,18 @@ public class SearchController {
     public ResponseEntity<String> semanticSearch(@ModelAttribute SearchQuery query) {
         String url = nlpApiUrl + "/search?query=" + query.getQuery();
         log.info("Calling NLP API: {}", url);
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        
+        WebClient webClient = webClientBuilder.baseUrl(nlpApiUrl).build();
+        
+        String responseBody = webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/search")
+                        .queryParam("query", query.getQuery())
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+                
+        return ResponseEntity.ok(responseBody);
     }
 }

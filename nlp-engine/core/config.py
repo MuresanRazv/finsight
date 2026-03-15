@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     CHROMADB_HOST: str = Field("chromadb", env="CHROMADB_HOST")
     CHROMADB_PORT: int = Field(8000, env="CHROMADB_PORT")
 
+    # RAG
+    LLM_HOST: str = Field('http://host.docker.internal:11434', env='LLM_HOST')
+    LLM_MODEL: str = Field('qwen3:8b', env='LLM_MODEL')
+
     class Config:
         env_file = ".env"
 
