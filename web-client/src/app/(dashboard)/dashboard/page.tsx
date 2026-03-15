@@ -5,9 +5,9 @@ import { GeneralMarketSentimentChart } from '@/components/charts/GeneralMarketSe
 
 export default function DashboardPage() {
     return (
-        <div className='min-h-screen bg-gray-900 p-8 text-white'>
+        <div className='min-h-screen p-8 text-white'>
             <header className='mb-8'>
-                <h1 className='text-4xl font-bold'>FinSight Dashboard</h1>
+                <h1 className='text-4xl font-bold'>Dashboard</h1>
             </header>
 
             <main className='grid grid-cols-1 gap-8 lg:grid-cols-2'>

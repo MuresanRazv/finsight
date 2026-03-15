@@ -3,26 +3,33 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Search, Settings, LineChart } from 'lucide-react'
+import { LayoutDashboard, Search, Settings, LineChart, MessageSquare, BarChart3, FileText, User } from 'lucide-react'
 
-const routes = [
+const mainRoutes = [
     {
         label: 'Dashboard',
         icon: LayoutDashboard,
         href: '/dashboard',
-        color: 'text-sky-500',
     },
     {
         label: 'Semantic Search',
         icon: Search,
         href: '/search',
-        color: 'text-violet-500',
     },
     {
-        label: 'Settings',
-        icon: Settings,
-        href: '/settings',
-        color: 'text-gray-400',
+        label: 'AI Chat',
+        icon: MessageSquare,
+        href: '/chat',
+    },
+    {
+        label: 'Market Analysis',
+        icon: BarChart3,
+        href: '#', // Placeholder
+    },
+    {
+        label: 'Reports',
+        icon: FileText,
+        href: '#', // Placeholder
     },
 ]
 
@@ -30,36 +37,58 @@ export function Sidebar() {
     const pathname = usePathname()
 
     return (
-        <div className='flex h-full flex-col space-y-4 border-r border-slate-800 bg-slate-900 py-4 text-white'>
-            <div className='flex-1 px-3 py-2'>
-                <Link href='/' className='mb-14 flex items-center pl-3'>
-                    <div className='relative mr-4 h-8 w-8'>
-                        <LineChart className='h-8 w-8 text-emerald-500' />
-                    </div>
-                    <h1 className='text-2xl font-bold'>FinSight</h1>
-                </Link>
-                <div className='space-y-1'>
-                    {routes.map((route) => (
-                        <Link
-                            key={route.href}
-                            href={route.href}
-                            className={cn(
-                                'group flex w-full cursor-pointer justify-start rounded-lg p-3 text-sm font-medium transition hover:bg-white/10 hover:text-white',
-                                pathname === route.href
-                                    ? 'bg-white/10 text-white'
-                                    : 'text-zinc-400',
-                            )}
-                        >
-                            <div className='flex flex-1 items-center'>
+        <aside className='hidden md:flex w-64 flex-col justify-between border-r border-[#334155] bg-[#182132] text-[#f8fafc]'>
+            <div>
+                {/* Logo */}
+                <div className='flex h-16 items-center px-6 border-b border-[#334155]'>
+                    <LineChart className='mr-2 h-6 w-6 text-[#3b82f6]' />
+                    <span className='text-xl font-bold tracking-wide'>FinSight</span>
+                </div>
+                
+                {/* Navigation */}
+                <nav className='space-y-1 p-4'>
+                    {mainRoutes.map((route) => {
+                        const isActive = pathname === route.href
+                        return (
+                            <Link
+                                key={route.label}
+                                href={route.href}
+                                className={cn(
+                                    'group flex items-center rounded-md px-3 py-2 transition-colors',
+                                    isActive
+                                        ? 'bg-[#293b5a] text-white'
+                                        : 'text-[#94a3b8] hover:bg-[#293b5a] hover:text-white',
+                                )}
+                            >
                                 <route.icon
-                                    className={cn('mr-3 h-5 w-5', route.color)}
+                                    className={cn(
+                                        'mr-3 h-5 w-5',
+                                        isActive ? 'text-[#3b82f6]' : 'group-hover:text-white'
+                                    )}
                                 />
                                 {route.label}
-                            </div>
-                        </Link>
-                    ))}
+                            </Link>
+                        )
+                    })}
+                </nav>
+            </div>
+
+            {/* Bottom Sidebar Actions */}
+            <div className='border-t border-[#334155] p-4'>
+                <Link
+                    href='/settings'
+                    className='group mb-2 flex items-center rounded-md px-3 py-2 text-[#94a3b8] transition-colors hover:bg-[#293b5a] hover:text-white'
+                >
+                    <Settings className='mr-3 h-5 w-5 group-hover:text-white' />
+                    Settings
+                </Link>
+                <div className='mt-auto flex items-center px-3 py-2'>
+                    <div className='mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-500'>
+                        <User className='h-5 w-5 text-white' />
+                    </div>
+                    <span className='text-sm font-medium'>John Doe</span>
                 </div>
             </div>
-        </div>
+        </aside>
     )
 }

@@ -3,6 +3,7 @@
 import { Sidebar } from '@/components/layout/Sidebar'
 import { TopNav } from '@/components/layout/TopNav'
 import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
+import { SearchStateProvider } from '@/components/providers/SearchStateProvider'
 import { getSession } from '@/lib/session'
 import React from 'react'
 
@@ -15,15 +16,25 @@ export default async function DashboardLayout({
 
     return (
         <WebSocketProvider token={session.token}>
-            <div className='relative h-full'>
-                <div className='z-80 hidden h-full bg-gray-900 md:fixed md:inset-y-0 md:flex md:w-72 md:flex-col'>
+            <SearchStateProvider>
+                <div className='flex h-screen overflow-hidden bg-[#1e2637] text-[#f8fafc] antialiased'>
                     <Sidebar />
+                    <div className='relative flex flex-1 flex-col overflow-hidden'>
+                        <TopNav />
+                        <main className='relative z-10 flex flex-1 flex-col overflow-y-auto px-8 pt-16'>
+                            {children}
+                            {/* Subtle Background Gradient Effect */}
+                            <div
+                                className='pointer-events-none absolute inset-0 -z-10'
+                                style={{
+                                    background:
+                                        'radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 60%)',
+                                }}
+                            ></div>
+                        </main>
+                    </div>
                 </div>
-                <main className='h-full bg-slate-950 md:pl-72'>
-                    <TopNav />
-                    <div className='h-full overflow-y-auto p-8'>{children}</div>
-                </main>
-            </div>
+            </SearchStateProvider>
         </WebSocketProvider>
     )
 }

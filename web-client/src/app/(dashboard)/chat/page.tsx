@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Search, TrendingUp, TrendingDown, Cpu, DollarSign, Battery, Zap, X } from 'lucide-react'
+import { Loader2, Bot, Briefcase, Building, AlertTriangle, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -16,36 +16,36 @@ import {
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { searchSchema, SearchInput } from '@/lib/validations/search'
-import { semanticSearch } from '@/app/actions/search'
-import { SearchResult } from '@/components/search/SearchResult'
+import { chatQuery as performChatQuery } from '@/app/actions/chat'
+import { ChatResult } from '@/components/search/ChatResult'
 import { useSearchState } from '@/components/providers/SearchStateProvider'
 
-export default function SearchPage() {
+export default function ChatPage() {
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
     
     // Use global state
     const { 
-        searchQuery, 
-        setSearchQuery, 
-        searchResult, 
-        setSearchResult, 
-        searchHasSearched, 
-        setSearchHasSearched,
-        resetSearchState
+        chatQuery, 
+        setChatQuery, 
+        chatResult, 
+        setChatResult, 
+        chatHasSearched, 
+        setChatHasSearched,
+        resetChatState
     } = useSearchState()
 
     const form = useForm<SearchInput>({
         resolver: zodResolver(searchSchema),
         defaultValues: {
-            query: searchQuery, // Initialize with global state
+            query: chatQuery, // Initialize with global state
         },
     })
     
     // Sync form when global state changes (e.g. going back to the tab)
     useEffect(() => {
-        form.setValue('query', searchQuery)
-    }, [searchQuery, form])
+        form.setValue('query', chatQuery)
+    }, [chatQuery, form])
 
     const executeSearch = (query: string) => {
         form.setValue('query', query)
@@ -53,52 +53,49 @@ export default function SearchPage() {
     }
 
     const handleClear = () => {
-        resetSearchState()
+        resetChatState()
         form.setValue('query', '')
         setError(null)
     }
 
     function onSubmit(data: SearchInput) {
         setError(null)
-        setSearchHasSearched(true)
-        setSearchQuery(data.query)
+        setChatHasSearched(true)
+        setChatQuery(data.query)
 
         startTransition(async () => {
-            const response = await semanticSearch(data)
+            const response = await performChatQuery(data)
             if (response.success) {
-                setSearchResult(response.data ?? [])
+                setChatResult(response.data ?? null)
             } else {
                 setError(response.message || 'Something went wrong')
             }
         })
     }
 
-    const noResults = searchHasSearched && !isPending && !error && searchResult?.length === 0
+    const noResults = chatHasSearched && !isPending && !error && !chatResult
 
-    const suggestedSearches = [
-        { label: 'AI Sector Growth', icon: Cpu },
-        { label: 'Fed Rate Forecasts', icon: TrendingDown },
-        { label: 'Semiconductor Shortage', icon: Zap },
-        { label: 'Crypto Reg News', icon: DollarSign },
-        { label: 'Renewable Energy', icon: Battery },
-        { label: 'EV Production', icon: TrendingUp },
+    const suggestedPrompts = [
+        { label: 'Summarize AAPL earnings', icon: Briefcase },
+        { label: 'Analyze NVIDIA supply chain', icon: Building },
+        { label: 'Explain recent tech stock drop', icon: AlertTriangle },
     ]
 
     return (
         <div className='flex flex-col items-center max-w-4xl mx-auto w-full'>
             {/* Empty State / Welcome Screen */}
-            {!searchHasSearched && (
+            {!chatHasSearched && (
                 <div className='flex flex-col items-center w-full mb-12 mt-8'>
                     <div className='text-center max-w-2xl mb-12'>
                         <h2 className='text-3xl font-semibold text-white mb-4'>Start your analysis</h2>
                         <p className='text-[#94a3b8] leading-relaxed'>
-                            Discover hidden connections across thousands of financial sources using natural language. FinSight's semantic search understands context, going beyond keywords to deliver precise insights and trends from global markets, news, and reports.
+                            Chat with FinSight's AI to get deep financial analysis, summaries of complex market events, and actionable insights derived from real-time news sources.
                         </p>
                     </div>
 
                     {/* Suggested Searches Grid */}
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-4 w-full'>
-                        {suggestedSearches.map((item, index) => {
+                        {suggestedPrompts.map((item, index) => {
                             const Icon = item.icon
                             return (
                                 <button
@@ -118,7 +115,7 @@ export default function SearchPage() {
             )}
 
             {/* Search Input Area */}
-            <div className={`w-full relative mb-12 ${searchHasSearched ? 'mt-0' : ''}`}>
+            <div className={`w-full relative mb-12 ${chatHasSearched ? 'mt-0' : ''}`}>
                 <Form {...form}>
                     <form
                         onSubmit={form.handleSubmit(onSubmit)}
@@ -132,11 +129,11 @@ export default function SearchPage() {
                                     <FormControl>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                <Search className="w-5 h-5 text-[#94a3b8]" />
+                                                <Bot className="w-5 h-5 text-[#94a3b8]" />
                                             </div>
                                             <Input
                                                 className='w-full pl-12 pr-32 py-7 bg-[#243046] border-[#334155] rounded-xl text-white placeholder:text-[#94a3b8] focus-visible:ring-[#3b82f6] shadow-sm text-base'
-                                                placeholder="Search for tickers, market news, or economic trends..."
+                                                placeholder="Ask AI for financial analysis..."
                                                 {...field}
                                                 disabled={isPending}
                                             />
@@ -147,7 +144,7 @@ export default function SearchPage() {
                             )}
                         />
                         <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-2">
-                            {searchHasSearched && (
+                            {chatHasSearched && (
                                 <Button
                                     type='button'
                                     variant="ghost"
@@ -160,12 +157,14 @@ export default function SearchPage() {
                             <Button
                                 type='submit'
                                 disabled={isPending}
-                                className='px-6 py-5 bg-[#334155] hover:bg-[#475569] text-white rounded-lg font-medium transition-colors border-0'
+                                className='px-6 py-5 bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded-lg font-medium transition-colors border-0'
                             >
                                 {isPending ? (
                                     <Loader2 className='h-5 w-5 animate-spin' />
                                 ) : (
-                                    'Search'
+                                    <div className="flex items-center gap-2">
+                                        Ask AI
+                                    </div>
                                 )}
                             </Button>
                         </div>
@@ -192,16 +191,13 @@ export default function SearchPage() {
 
                 {noResults && (
                     <div className='py-10 text-center text-[#94a3b8]'>
-                        No results found for your query. Try adjusting your search terms.
+                        No AI response generated. Try rephrasing your prompt.
                     </div>
                 )}
 
-                {searchResult && searchResult.length > 0 && (
-                    <div className='space-y-4 w-full pb-12'>
-                        <h2 className='text-xl font-semibold text-white mb-6 border-b border-[#334155] pb-2'>
-                            Search Results
-                        </h2>
-                        <SearchResult results={searchResult} />
+                {chatResult && (
+                    <div className='pb-12'>
+                         <ChatResult result={chatResult} />
                     </div>
                 )}
             </div>

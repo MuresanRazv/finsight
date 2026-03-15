@@ -1,15 +1,7 @@
 'use client'
 
 import { ChatResponse, ArticleStats } from '@/lib/types/chat'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-    ExternalLink,
-    TrendingUp,
-    TrendingDown,
-    Minus,
-    Bot,
-} from 'lucide-react'
+import { ExternalLink, Brain } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 
 interface ChatResultProps {
@@ -22,114 +14,104 @@ export function ChatResult({ result }: ChatResultProps) {
     }
 
     return (
-        <div className='space-y-6'>
-            <Card className='border-slate-800 bg-slate-900'>
-                <CardHeader className='border-b border-slate-800 pb-4'>
-                    <div className='flex items-center gap-3'>
-                        <Bot className='h-6 w-6 text-blue-400' />
-                        <CardTitle className='text-lg font-semibold text-white'>
-                            AI Analysis
-                        </CardTitle>
+        <div className='space-y-10 dark'>
+            {/* AI Analysis Container */}
+            <div className='bg-card border border-border rounded-2xl p-6 shadow-[0_0_20px_rgba(56,189,248,0.1)] dark:border-blue-500/30'>
+                <div className='flex items-center gap-3 mb-4'>
+                    <div className='w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20'>
+                        <Brain className='w-5 h-5' />
                     </div>
-                </CardHeader>
-                <CardContent className='pt-6'>
-                    <div className='prose prose-invert prose-p:text-slate-300 prose-headings:text-white prose-strong:text-white prose-ul:text-slate-300 prose-ol:text-slate-300 prose-li:text-slate-300 max-w-none text-slate-300'>
-                        <ReactMarkdown>{result.answer}</ReactMarkdown>
-                    </div>
-                </CardContent>
-            </Card>
+                    <h2 className='text-xl font-semibold text-foreground'>
+                        AI Analysis
+                    </h2>
+                </div>
+                <div className='prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-p:leading-relaxed'>
+                    <ReactMarkdown>{result.answer}</ReactMarkdown>
+                </div>
+            </div>
 
+            {/* Sources Section */}
             {result.sources && result.sources.length > 0 && (
-                <div className='mt-8 space-y-4'>
-                    <h3 className='px-1 text-lg font-semibold text-white'>
+                <section>
+                    <h3 className='text-xl font-semibold text-foreground mb-6'>
                         Sources Analyzed
                     </h3>
-                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                         {result.sources.map((source, index) => (
                             <SourceCard key={index} source={source} />
                         ))}
                     </div>
-                </div>
+                </section>
             )}
         </div>
     )
 }
 
 function SourceCard({ source }: { source: ArticleStats }) {
-    let sentimentColor = 'text-yellow-500'
-    let SentimentIcon = Minus
+    let sentimentBadgeClasses =
+        'bg-yellow-500/20 text-yellow-400'
 
     if (source.overall_sentiment_label === 'positive') {
-        sentimentColor = 'text-emerald-500'
-        SentimentIcon = TrendingUp
+        sentimentBadgeClasses =
+            'bg-emerald-500/20 text-emerald-400'
     } else if (source.overall_sentiment_label === 'negative') {
-        sentimentColor = 'text-red-500'
-        SentimentIcon = TrendingDown
+        sentimentBadgeClasses = 'bg-red-500/20 text-red-400'
     }
 
+    const domain = new URL(source.url).hostname.replace('www.', '')
+
     return (
-        <Card className='flex flex-col border-slate-800 bg-slate-900/50 transition-colors hover:border-slate-700'>
-            <CardHeader className='px-4 py-3'>
-                <div className='flex items-start justify-between gap-2'>
+        <div className='bg-card border border-border rounded-xl p-4 flex flex-col justify-between h-32 hover:border-muted-foreground/50 transition-colors'>
+            <div className='flex justify-between items-start'>
+                <div className='flex items-center gap-2'>
+                    <div className='w-6 h-6 bg-secondary rounded flex items-center justify-center text-[10px] font-bold text-secondary-foreground uppercase overflow-hidden shrink-0'>
+                        {domain.substring(0, 2)}
+                    </div>
                     <a
                         href={source.url}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors hover:text-emerald-400'
+                        className='text-sm font-medium text-muted-foreground hover:text-foreground truncate flex items-center gap-1'
+                        title={domain}
                     >
-                        <ExternalLink className='h-4 w-4 flex-shrink-0 opacity-70' />
-                        <span className='truncate'>
-                            {new URL(source.url).hostname}
-                        </span>
+                        <span className='truncate max-w-[120px]'>{domain}</span>
+                        <ExternalLink className='w-3 h-3 opacity-50 shrink-0' />
                     </a>
-                    <div
-                        className={`flex shrink-0 items-center gap-1 text-xs font-medium ${sentimentColor}`}
-                    >
-                        <SentimentIcon className='h-4 w-4' />
-                        <span className='capitalize'>
-                            {source.overall_sentiment_label}
-                        </span>
-                    </div>
                 </div>
-            </CardHeader>
-            {source.entities && source.entities.length > 0 && (
-                <CardContent className='flex-grow border-t border-slate-800/50 px-4 py-3'>
-                    <div className='flex flex-wrap gap-2'>
-                        {source.entities.map((entity, i) => {
-                            let eColor = 'text-slate-400'
-                            if (entity.sentiment_label === 'positive')
-                                eColor = 'text-emerald-400'
-                            if (entity.sentiment_label === 'negative')
-                                eColor = 'text-red-400'
+                <span
+                    className={`px-2 py-1 rounded text-xs font-medium capitalize ${sentimentBadgeClasses}`}
+                >
+                    {source.overall_sentiment_label}
+                </span>
+            </div>
 
-                            return (
-                                <Badge
-                                    key={i}
-                                    variant='secondary'
-                                    className='border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                                >
-                                    {entity.name}
-                                    {entity.ticker && (
-                                        <span className='ml-1 text-slate-500'>
-                                            ({entity.ticker})
-                                        </span>
-                                    )}
-                                    {entity.sentiment_score !== undefined &&
-                                        entity.sentiment_score !== null && (
-                                            <span
-                                                className={`ml-1.5 font-mono text-xs ${eColor}`}
-                                            >
-                                                {entity.sentiment_score.toFixed(
-                                                    2,
-                                                )}
-                                            </span>
-                                        )}
-                                </Badge>
-                            )
-                        })}
-                    </div>
-                </CardContent>
+            {source.entities && source.entities.length > 0 && (
+                <div className='flex gap-2 mt-4 text-xs font-medium overflow-x-auto pb-1 scrollbar-hide'>
+                    {source.entities.slice(0, 3).map((entity, i) => {
+                        let eClasses =
+                            'bg-yellow-500/10 text-yellow-400'
+                        if (entity.sentiment_label === 'positive')
+                            eClasses =
+                                'bg-emerald-500/10 text-emerald-400'
+                        if (entity.sentiment_label === 'negative')
+                            eClasses = 'bg-red-500/10 text-red-400'
+
+                        return (
+                            <span
+                                key={i}
+                                className={`px-2 py-1 rounded shrink-0 whitespace-nowrap ${eClasses}`}
+                            >
+                                {entity.ticker || entity.name}{' '}
+                                {!!entity.sentiment_score
+                                    ? (entity.sentiment_score > 0 ? '+' : '') +
+                                      (entity.sentiment_score * 100).toFixed(0) +
+                                      '%'
+                                    : ''}
+                            </span>
+                        )
+                    })}
+                </div>
             )}
-        </Card>
+        </div>
     )
 }
