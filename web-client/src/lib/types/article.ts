@@ -1,6 +1,6 @@
 export interface EntitySentiment {
-    name: string
-    ticker: string
+    name?: string
+    ticker?: string
     sentiment_score: number
     sentiment_label: string
 }

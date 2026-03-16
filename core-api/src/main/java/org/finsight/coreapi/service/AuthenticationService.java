@@ -41,6 +41,8 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
+                .accessTokenExpiry(jwtService.extractExpiration(jwtToken).getTime())
+                .refreshTokenExpiry(jwtService.extractExpiration(refreshToken).getTime())
                 .build();
     }
 
@@ -58,6 +60,8 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)
+                .accessTokenExpiry(jwtService.extractExpiration(jwtToken).getTime())
+                .refreshTokenExpiry(jwtService.extractExpiration(refreshToken).getTime())
                 .build();
     }
 
@@ -78,6 +82,8 @@ public class AuthenticationService {
                 var authResponse = AuthenticationResponse.builder()
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
+                        .accessTokenExpiry(jwtService.extractExpiration(accessToken).getTime())
+                        .refreshTokenExpiry(jwtService.extractExpiration(refreshToken).getTime())
                         .build();
                 new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
             }

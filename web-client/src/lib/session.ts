@@ -5,12 +5,13 @@ import { cache } from 'react'
 export type SessionData = {
     token: string
     refreshToken: string
+    tokenExpiry: number
+    refreshTokenExpiry: number
     user?: {
         firstname: string
         lastname: string
         email: string
     }
-    isLoggedIn: boolean
 }
 
 export const sessionOptions = {

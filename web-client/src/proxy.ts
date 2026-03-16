@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getSession } from '@/lib/session'
-import { refreshToken } from '@/app/actions/auth'
+import { refreshToken, updateUserSession } from '@/app/actions/auth'
 
 export async function proxy(request: NextRequest) {
     const session = await getSession()
@@ -20,22 +20,25 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
-    const API_URL = process.env.INTERNAL_API_URL || 'http://core-api:8080/api'
+    if (session.refreshToken && session.tokenExpiry) {
+        const now = Date.now()
+        // Refresh token 5 minutes before it expires
+        const shouldRefresh = session.tokenExpiry - now < 5 * 60 * 1000
 
-    if (session.refreshToken) {
-        try {
-            const response = await fetch(`${API_URL}/user/me`, {
-                headers: {
-                    Authorization: `Bearer ${session.token}`,
-                },
-            })
-
-            if (response.status === 401 || response.status === 403) {
+        if (shouldRefresh) {
+            try {
                 await refreshToken()
+            } catch (error) {
+                console.error('Error refreshing token:', error)
+                // If refresh fails, redirect to login
+                session.destroy()
+                return NextResponse.redirect(new URL('/login', request.url))
             }
-        } catch (error) {
-            console.error('Error checking token validity:', error)
         }
+    }
+
+    if (!session.user) {
+        await updateUserSession()
     }
 
     return NextResponse.next()

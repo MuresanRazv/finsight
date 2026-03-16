@@ -22,6 +22,8 @@ export interface RegisterRequest {
 export interface AuthenticationResponse {
     access_token?: string
     refresh_token?: string
+    access_token_expiry?: number
+    refresh_token_expiry?: number
 }
 
 export interface AuthenticationRequest {

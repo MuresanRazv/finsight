@@ -38,6 +38,7 @@ import {
     changePassword,
     updateUserSettings,
 } from '@/app/actions/settings'
+import { updateUserSession } from '@/app/actions/auth'
 
 export default function SettingsPage() {
     const [isPending, startTransition] = useTransition()
@@ -108,6 +109,7 @@ export default function SettingsPage() {
         startTransition(async () => {
             try {
                 await updateUserProfile(data)
+                await updateUserSession()
                 toast.success('Profile updated', {
                     description:
                         'Your profile information has been updated successfully.',

@@ -3,7 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Search, Settings, LineChart, MessageSquare, BarChart3, FileText, User } from 'lucide-react'
+import {
+    LayoutDashboard,
+    Search,
+    Settings,
+    LineChart,
+    MessageSquare,
+    BarChart3,
+    FileText,
+    User,
+} from 'lucide-react'
 
 const mainRoutes = [
     {
@@ -33,18 +42,20 @@ const mainRoutes = [
     },
 ]
 
-export function Sidebar() {
+export function Sidebar({ session }: { session: any }) {
     const pathname = usePathname()
 
     return (
-        <aside className='hidden md:flex w-64 flex-col justify-between border-r border-[#334155] bg-[#182132] text-[#f8fafc]'>
+        <aside className='hidden w-64 flex-col justify-between border-r border-[#334155] bg-[#182132] text-[#f8fafc] md:flex'>
             <div>
                 {/* Logo */}
-                <div className='flex h-16 items-center px-6 border-b border-[#334155]'>
+                <div className='flex h-16 items-center border-b border-[#334155] px-6'>
                     <LineChart className='mr-2 h-6 w-6 text-[#3b82f6]' />
-                    <span className='text-xl font-bold tracking-wide'>FinSight</span>
+                    <span className='text-xl font-bold tracking-wide'>
+                        FinSight
+                    </span>
                 </div>
-                
+
                 {/* Navigation */}
                 <nav className='space-y-1 p-4'>
                     {mainRoutes.map((route) => {
@@ -63,7 +74,9 @@ export function Sidebar() {
                                 <route.icon
                                     className={cn(
                                         'mr-3 h-5 w-5',
-                                        isActive ? 'text-[#3b82f6]' : 'group-hover:text-white'
+                                        isActive
+                                            ? 'text-[#3b82f6]'
+                                            : 'group-hover:text-white',
                                     )}
                                 />
                                 {route.label}
@@ -86,7 +99,9 @@ export function Sidebar() {
                     <div className='mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-500'>
                         <User className='h-5 w-5 text-white' />
                     </div>
-                    <span className='text-sm font-medium'>John Doe</span>
+                    <span className='text-sm font-medium'>
+                        {session?.firstname} {session?.lastname}
+                    </span>
                 </div>
             </div>
         </aside>

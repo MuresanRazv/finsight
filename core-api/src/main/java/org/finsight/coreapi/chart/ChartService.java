@@ -41,6 +41,7 @@ public class ChartService {
                 Map<String, Object> entityMap = new HashMap<>();
                 entityMap.put("ticker", e.getTicker());
                 entityMap.put("sentiment_score", e.getSentimentScore());
+                entityMap.put("name", e.getName());
                 return entityMap;
             }).collect(Collectors.toList()));
             return map;

@@ -140,13 +140,21 @@ export function LatestArticlesChart() {
                                             <div className='mt-1 flex flex-wrap gap-1'>
                                                 {article.entities
                                                     .slice(0, 3)
+                                                    .filter(
+                                                        (e) =>
+                                                            !!e.ticker ||
+                                                            !!e.name,
+                                                    )
                                                     .map((entity, eIdx) => (
                                                         <span
                                                             key={eIdx}
                                                             className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
                                                         >
-                                                            {entity.ticker ||
-                                                                entity.name}
+                                                            {!!entity.ticker &&
+                                                            entity.ticker
+                                                                .length > 0
+                                                                ? entity.ticker
+                                                                : entity.name}
                                                         </span>
                                                     ))}
                                                 {article.entities.length >

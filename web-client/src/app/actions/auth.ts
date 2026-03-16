@@ -39,7 +39,8 @@ export async function loginUser(data: LoginInput): Promise<AuthResponse> {
             const session = await getSession()
             session.token = result.access_token
             session.refreshToken = result.refresh_token
-            session.isLoggedIn = true
+            session.tokenExpiry = result.access_token_expiry
+            session.refreshTokenExpiry = result.refresh_token_expiry
             await session.save()
 
             return { success: true, token: result.access_token }
@@ -86,7 +87,8 @@ export async function registerUser(data: RegisterInput): Promise<AuthResponse> {
             const session = await getSession()
             session.token = result.access_token
             session.refreshToken = result.refresh_token
-            session.isLoggedIn = true
+            session.tokenExpiry = result.access_token_expiry
+            session.refreshTokenExpiry = result.refresh_token_expiry
             await session.save()
 
             return { success: true, token: result.access_token }
@@ -137,8 +139,10 @@ export async function refreshToken() {
             const result = JSON.parse(text)
             if (result.access_token) {
                 session.token = result.access_token
+                session.tokenExpiry = result.access_token_expiry
                 if (result.refresh_token) {
                     session.refreshToken = result.refresh_token
+                    session.refreshTokenExpiry = result.refresh_token_expiry
                 }
                 await session.save()
                 return { success: true, token: result.access_token }
@@ -149,4 +153,48 @@ export async function refreshToken() {
     }
 
     return { success: false }
+}
+
+export async function updateUserSession(): Promise<AuthResponse> {
+    const session = await getSession()
+    const now = Date.now()
+
+    if (!session.token || session.tokenExpiry - now <= 0) {
+        const refreshResult = await refreshToken()
+        if (!refreshResult.success) {
+            return {
+                success: false,
+                message: 'Session expired. Please log in again.',
+            }
+        }
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/user/me`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${session.token}`,
+            },
+        })
+
+        if (response.ok) {
+            const result = await response.json()
+            session.user = { ...result }
+            await session.save()
+            await getSession()
+            return { success: true }
+        } else {
+            const errorData = await response.json().catch(() => null)
+            return {
+                success: false,
+                message: errorData?.message || 'Failed to fetch user data.',
+            }
+        }
+    } catch (error) {
+        console.error('Update user session error:', error)
+        return {
+            success: false,
+            message: 'An error occurred while updating the session.',
+        }
+    }
 }
