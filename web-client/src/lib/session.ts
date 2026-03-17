@@ -2,16 +2,18 @@ import { getIronSession } from 'iron-session'
 import { cookies } from 'next/headers'
 import { cache } from 'react'
 
+export type SessionUser = {
+    firstname: string
+    lastname: string
+    email: string
+}
+
 export type SessionData = {
     token: string
     refreshToken: string
     tokenExpiry: number
     refreshTokenExpiry: number
-    user?: {
-        firstname: string
-        lastname: string
-        email: string
-    }
+    user?: SessionUser
 }
 
 export const sessionOptions = {

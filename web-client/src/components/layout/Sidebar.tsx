@@ -13,6 +13,7 @@ import {
     FileText,
     User,
 } from 'lucide-react'
+import { SessionUser } from '@/lib/session'
 
 const mainRoutes = [
     {
@@ -42,7 +43,7 @@ const mainRoutes = [
     },
 ]
 
-export function Sidebar({ session }: { session: any }) {
+export function Sidebar({ session }: { session?: SessionUser }) {
     const pathname = usePathname()
 
     return (
