@@ -155,7 +155,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className='space-y-6'>
+        <div className='dark space-y-6'>
             <PageHeader
                 title='Settings'
                 description='Manage your account settings and preferences.'

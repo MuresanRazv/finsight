@@ -83,7 +83,7 @@ export function PopularTickersChart() {
     const chartData = Array.isArray(data?.data) ? data.data : []
 
     return (
-        <Card className='flex h-[500px] w-full flex-col'>
+        <Card className='dark flex h-[500px] w-full flex-col'>
             <CardHeader>
                 <CardTitle>Popular Tickers</CardTitle>
             </CardHeader>

@@ -46,10 +46,10 @@ export function Sidebar({ session }: { session: any }) {
     const pathname = usePathname()
 
     return (
-        <aside className='hidden w-64 flex-col justify-between border-r border-[#334155] bg-[#182132] text-[#f8fafc] md:flex'>
+        <aside className='dark hidden w-64 flex-col justify-between border-r md:flex'>
             <div>
                 {/* Logo */}
-                <div className='flex h-16 items-center border-b border-[#334155] px-6'>
+                <div className='dark flex h-16 items-center border-b px-6'>
                     <LineChart className='mr-2 h-6 w-6 text-[#3b82f6]' />
                     <span className='text-xl font-bold tracking-wide'>
                         FinSight

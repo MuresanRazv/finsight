@@ -69,7 +69,7 @@ export function LatestArticlesChart() {
     }
 
     return (
-        <Card className='flex h-[500px] w-full flex-col'>
+        <Card className='dark flex h-[500px] w-full flex-col'>
             <CardHeader>
                 <CardTitle>
                     {data?.title || 'Latest Fetched Articles'}

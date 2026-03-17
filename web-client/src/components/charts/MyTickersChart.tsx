@@ -186,7 +186,7 @@ export function MyTickersChart() {
     }
 
     return (
-        <Card className='flex h-[500px] w-full flex-col'>
+        <Card className='dark flex h-[500px] w-full flex-col'>
             <CardHeader>
                 <CardTitle>My Tickers</CardTitle>
             </CardHeader>
