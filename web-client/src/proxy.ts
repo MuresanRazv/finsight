@@ -20,6 +20,16 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url))
     }
 
+    if (session.refreshToken && session.refreshTokenExpiry) {
+        const now = Date.now()
+        const isRefreshTokenExpired = session.refreshTokenExpiry - now < 0
+
+        if (isRefreshTokenExpired) {
+            session.destroy()
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
+    }
+
     if (session.refreshToken && session.tokenExpiry) {
         const now = Date.now()
         // Refresh token 5 minutes before it expires
