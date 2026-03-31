@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bell, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,26 +12,50 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useWebSocket } from '@/components/providers/WebSocketProvider'
 import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
-import { ArticleDto } from '@/lib/types/article'
 import { getUserSettings } from '@/app/actions/settings'
+import {
+    getNotifications,
+    markAsRead,
+    markAllAsRead,
+} from '@/app/actions/notifications'
+import { NotificationDto } from '@/lib/types/notification'
 
 export function NotificationBell() {
-    const [notifications, setNotifications] = useState<ArticleDto[]>([])
+    const [notifications, setNotifications] = useState<NotificationDto[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)
     const { subscribe, unsubscribe } = useWebSocket()
 
+    const fetchInitialNotifications = useCallback(async () => {
+        try {
+            const data = await getNotifications()
+            if (data && Array.isArray(data)) {
+                setNotifications(data)
+                setUnreadCount(data.filter((n) => !n.is_read).length)
+            }
+        } catch (error) {
+            console.error('Failed to fetch initial notifications', error)
+        }
+    }, [])
+
     useEffect(() => {
-        const handleMessage = (message: ArticleDto) => {
-            setNotifications((prev) => [message, ...prev])
-            setUnreadCount((prev) => prev + 1)
+        void fetchInitialNotifications()
+    }, [fetchInitialNotifications])
+
+    useEffect(() => {
+        const handleMessage = (message: NotificationDto) => {
+            setNotifications((prev) => {
+                // Deduplicate by ID
+                if (prev.some((n) => n.id === message.id)) {
+                    return prev
+                }
+                return [message, ...prev]
+            })
+            if (!message.is_read) {
+                setUnreadCount((prev) => prev + 1)
+            }
         }
 
-        // Subscribe to general sentiments
-        // Subscribe only to specific tickers for now
-        // subscribe("/topic/sentiments", handleMessage);
-
-        // Subscribe to user's specific tickers
         const fetchAndSubscribe = async () => {
             try {
                 const settings = await getUserSettings()
@@ -55,16 +79,65 @@ export function NotificationBell() {
         void fetchAndSubscribe()
 
         return () => {
-            unsubscribe('/topic/sentiments')
-            // Note: We can't easily unsubscribe from dynamic tickers here without storing them in state/ref
-            // Ideally, the WebSocketService should handle bulk unsubscribe or we track subscriptions
+            // Ideally we should track and unsubscribe from all tickers
         }
     }, [subscribe, unsubscribe])
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open)
-        if (open) {
+    }
+
+    const formatNotificationDate = (dateInput: any) => {
+        if (!dateInput) return 'unknown'
+        try {
+            // Handle array format [YYYY, MM, DD, HH, mm, ss, ns] from some Jackson configurations
+            if (Array.isArray(dateInput)) {
+                const [year, month, day, hour, minute, second] = dateInput
+                return formatDistanceToNow(
+                    new Date(
+                        year,
+                        month - 1,
+                        day,
+                        hour || 0,
+                        minute || 0,
+                        second || 0,
+                    ),
+                    { addSuffix: true },
+                )
+            }
+            const date = new Date(dateInput)
+            if (isNaN(date.getTime())) return 'invalid date'
+            return formatDistanceToNow(date, { addSuffix: true })
+        } catch (error) {
+            return 'invalid date'
+        }
+    }
+
+    const handleMouseEnter = async (notification: NotificationDto) => {
+        if (!notification.is_read) {
+            try {
+                await markAsRead(notification.id)
+                setNotifications((prev) =>
+                    prev.map((n) =>
+                        n.id === notification.id ? { ...n, is_read: true } : n,
+                    ),
+                )
+                setUnreadCount((prev) => Math.max(0, prev - 1))
+            } catch (error) {
+                console.error('Failed to mark as read', error)
+            }
+        }
+    }
+
+    const handleClearAll = async () => {
+        try {
+            await markAllAsRead()
+            setNotifications((prev) =>
+                prev.map((n) => ({ ...n, is_read: true })),
+            )
             setUnreadCount(0)
+        } catch (error) {
+            console.error('Failed to mark all as read', error)
         }
     }
 
@@ -90,73 +163,83 @@ export function NotificationBell() {
             >
                 <div className='flex items-center justify-between border-b border-slate-800 px-4 py-3'>
                     <h4 className='font-semibold'>Notifications</h4>
-                    {notifications.length > 0 && (
+                    {unreadCount > 0 && (
                         <Button
                             variant='ghost'
                             size='sm'
                             className='h-auto p-0 text-xs text-slate-400 hover:text-slate-100'
-                            onClick={() => setNotifications([])}
+                            onClick={handleClearAll}
                         >
-                            Clear all
+                            Mark all as read
                         </Button>
                     )}
                 </div>
-                <ScrollArea className='h-75'>
+                <ScrollArea className='h-80'>
                     {notifications.length === 0 ? (
-                        <div className='flex h-full items-center justify-center p-4 text-sm text-slate-500'>
-                            No new notifications
+                        <div className='flex h-40 items-center justify-center p-4 text-sm text-slate-500'>
+                            No notifications
                         </div>
                     ) : (
                         <div className='flex flex-col'>
-                            {notifications.map((notification, index) => (
+                            {notifications.map((notification) => (
                                 <div
-                                    key={index}
-                                    className='flex flex-col gap-1 border-b border-slate-800 px-4 py-3 transition-colors hover:bg-slate-800/50'
+                                    key={notification.id}
+                                    onMouseEnter={() =>
+                                        handleMouseEnter(notification)
+                                    }
+                                    className={`relative flex flex-col gap-1 border-b border-slate-800 px-4 py-3 transition-colors hover:bg-slate-800/50 ${
+                                        !notification.is_read
+                                            ? 'bg-blue-500/5'
+                                            : 'opacity-70'
+                                    }`}
                                 >
+                                    {!notification.is_read && (
+                                        <div className='absolute left-1 top-4 h-2 w-2 rounded-full bg-blue-500'></div>
+                                    )}
                                     <div className='flex items-center justify-between'>
-                                        <span
-                                            className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                                                notification.overall_sentiment_label ===
-                                                'positive'
-                                                    ? 'bg-green-500/20 text-green-400'
-                                                    : notification.overall_sentiment_label ===
-                                                        'negative'
-                                                      ? 'bg-red-500/20 text-red-400'
-                                                      : 'bg-slate-500/20 text-slate-400'
-                                            }`}
-                                        >
-                                            {
-                                                notification.overall_sentiment_label
-                                            }
-                                        </span>
+                                        <div className='flex items-center gap-2'>
+                                            <Badge
+                                                variant='outline'
+                                                className='h-5 border-blue-500/50 bg-blue-500/10 px-1 text-[10px] font-bold text-blue-400'
+                                            >
+                                                {notification.ticker}
+                                            </Badge>
+                                            <span
+                                                className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                    (notification.sentiment_label ||
+                                                        '') === 'positive'
+                                                        ? 'bg-green-500/20 text-green-400'
+                                                        : (notification.sentiment_label ||
+                                                              '') === 'negative'
+                                                          ? 'bg-red-500/20 text-red-400'
+                                                          : 'bg-slate-500/20 text-slate-400'
+                                                }`}
+                                            >
+                                                {notification.sentiment_label ||
+                                                    'neutral'}
+                                            </span>
+                                        </div>
                                         <span className='text-[10px] text-slate-500'>
-                                            {formatDistanceToNow(
-                                                new Date(
-                                                    notification.processed_at,
-                                                ),
-                                                { addSuffix: true },
+                                            {formatNotificationDate(
+                                                notification.created_at,
                                             )}
                                         </span>
                                     </div>
-                                    <p className='mt-1 truncate text-sm leading-none font-medium'>
-                                        <a href={notification.url}>
-                                            View Ticker
-                                            <ExternalLink className='h-4 w-4 opacity-50' />
-                                        </a>
-                                    </p>
-                                    <div className='mt-1 flex flex-wrap gap-1'>
-                                        {notification.entities.map(
-                                            (entity, i) => (
-                                                <Badge
-                                                    key={i}
-                                                    variant='outline'
-                                                    className='h-5 border-slate-700 px-1 text-[10px] text-slate-400'
-                                                >
-                                                    {entity.ticker ||
-                                                        entity.name}
-                                                </Badge>
-                                            ),
-                                        )}
+                                    <div className='relative z-20 mt-1'>
+                                        <p className='truncate text-sm leading-none font-medium'>
+                                            <a
+                                                href={notification.article_url}
+                                                target='_blank'
+                                                rel='noopener noreferrer'
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                                className='inline-flex items-center gap-1 text-blue-400 hover:underline'
+                                            >
+                                                View Article
+                                                <ExternalLink className='h-3 w-3 opacity-50' />
+                                            </a>
+                                        </p>
                                     </div>
                                 </div>
                             ))}
