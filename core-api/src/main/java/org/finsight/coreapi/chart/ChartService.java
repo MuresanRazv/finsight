@@ -1,12 +1,12 @@
 package org.finsight.coreapi.chart;
 
 import lombok.RequiredArgsConstructor;
-import org.finsight.coreapi.domain.Article;
-import org.finsight.coreapi.domain.EntitySentiment;
-import org.finsight.coreapi.dto.UserSettingsDto;
-import org.finsight.coreapi.repository.ArticleRepository;
-import org.finsight.coreapi.repository.EntitySentimentRepository;
-import org.finsight.coreapi.service.UserSettingsService;
+import org.finsight.coreapi.article.Article;
+import org.finsight.coreapi.article.EntitySentiment;
+import org.finsight.coreapi.user.UserSettingsDto;
+import org.finsight.coreapi.article.ArticleRepository;
+import org.finsight.coreapi.article.EntitySentimentRepository;
+import org.finsight.coreapi.user.UserSettingsService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
