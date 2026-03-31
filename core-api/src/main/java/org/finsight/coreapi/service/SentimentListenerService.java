@@ -5,7 +5,9 @@ import org.finsight.coreapi.domain.EntitySentiment;
 import org.finsight.coreapi.domain.User;
 import org.finsight.coreapi.dto.AnalyzedArticleDto;
 import org.finsight.coreapi.dto.EntitySentimentDto;
+import org.finsight.coreapi.domain.Notification;
 import org.finsight.coreapi.repository.ArticleRepository;
+import org.finsight.coreapi.repository.NotificationRepository;
 import org.finsight.coreapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class SentimentListenerService {
 
     private final ArticleRepository articleRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @RabbitListener(
@@ -75,24 +78,32 @@ public class SentimentListenerService {
 
         // Broadcast to specific ticker topics
         sentiments.stream()
-                .map(EntitySentiment::getTicker)
-                .distinct()
-                .forEach(ticker -> {
+                .filter(s -> s.getTicker() != null)
+                .forEach(sentiment -> {
+                    String ticker = sentiment.getTicker();
                     // Broadcast to /topic/ticker/{ticker}
                     String destination = "/topic/ticker/" + ticker;
                     messagingTemplate.convertAndSend(destination, articleDto);
 
                     // Broadcast to users watching this ticker
-                    // We need to wrap the ticker in quotes and brackets to match JSON array containment check
-                    // The query checks if settings->'tickers' contains the ticker
-                    // Assuming settings->'tickers' is a JSON array of strings ["AAPL", "MSFT"]
-                    // The query is: settings -> 'tickers' @> '["AAPL"]'
                     String jsonTicker = "[\"" + ticker + "\"]";
                     List<User> interestedUsers = userRepository.findUsersWatchingTicker(jsonTicker);
                     
                     interestedUsers.forEach(user -> {
                         log.info("Sending update for ticker {} to user {}", ticker, user.getEmail());
-                        // This sends to /user/{username}/queue/watchlist
+
+                        // Save persistent notification
+                        Notification notification = Notification.builder()
+                                .user(user)
+                                .ticker(ticker)
+                                .articleUrl(article.getUrl())
+                                .articleProcessedAt(article.getProcessedAt())
+                                .sentimentScore(sentiment.getSentimentScore())
+                                .sentimentLabel(sentiment.getSentimentLabel())
+                                .build();
+                        notificationRepository.save(notification);
+
+                        // Broadcast to users watchlist
                         messagingTemplate.convertAndSendToUser(
                             user.getEmail(), 
                             "/queue/watchlist", 
