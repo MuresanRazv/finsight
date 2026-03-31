@@ -9,8 +9,6 @@ import {
     Settings,
     LineChart,
     MessageSquare,
-    BarChart3,
-    FileText,
     User,
 } from 'lucide-react'
 import { SessionUser } from '@/lib/session'
@@ -30,16 +28,6 @@ const mainRoutes = [
         label: 'AI Chat',
         icon: MessageSquare,
         href: '/chat',
-    },
-    {
-        label: 'Market Analysis',
-        icon: BarChart3,
-        href: '#', // Placeholder
-    },
-    {
-        label: 'Reports',
-        icon: FileText,
-        href: '#', // Placeholder
     },
 ]
 
