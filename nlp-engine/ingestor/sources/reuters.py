@@ -17,7 +17,7 @@ class ReutersScraper(NewsScraper):
     """
 
     # Changed to HTTPS to avoid potential DNS/redirection issues
-    RSS_URL = "https://feeds.reuters.com/reuters/businessNews"
+    RSS_URL = "https://ir.thomsonreuters.com/rss/news-releases.xml?items=15"
     SOURCE_NAME = "Reuters"
 
     def scrape(self) -> List[FinancialNewsItem]:

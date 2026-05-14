@@ -10,7 +10,9 @@ import logging
 import json
 
 from langchain_community.llms import Ollama
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,12 +24,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize
-llm = Ollama(
-    base_url=settings.LLM_HOST,
-    model=settings.LLM_MODEL,
-    temperature=0
-)
+# Initialize LLM
+if settings.USE_GEMINI:
+    logger.info(f"Using Gemini model: {settings.GEMINI_MODEL}")
+    llm = ChatGoogleGenerativeAI(
+        model=settings.GEMINI_MODEL,
+        google_api_key=settings.GOOGLE_API_KEY,
+        temperature=0
+    )
+else:
+    logger.info(f"Using Ollama model: {settings.LLM_MODEL} at {settings.LLM_HOST}")
+    llm = Ollama(
+        base_url=settings.LLM_HOST,
+        model=settings.LLM_MODEL,
+        temperature=0
+    )
 
 # Define Prompt Template
 rag_prompt = PromptTemplate(
@@ -140,8 +151,8 @@ async def chat_endpoint(request: ChatRequest):
             
         context = "\n\n".join(context_docs)
 
-        # Pass context and query to LangChain and Ollama
-        chain = rag_prompt | llm
+        # Pass context and query to LangChain and LLM
+        chain = rag_prompt | llm | StrOutputParser()
         answer = chain.invoke({"context": context, "question": request.query})
         
         # Return JSON response

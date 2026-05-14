@@ -8,7 +8,6 @@ from services.redis_service import redis_service
 import json
 import logging
 import pika
-import uuid
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -35,9 +34,6 @@ def analyze_sentiment(**news_item_data):
 
         # Run FinBERT on the whole text for overall sentiment
         overall_sentiment = ml_service.analyze_sentiment(news_item.text)
-        
-        # Generate a secure UUID v4 string to serve as the semantic_vector_id
-        semantic_vector_id = str(uuid.uuid4())
 
         # Pass the raw article text through the all-MiniLM-L6-v2 model to generate the embedding array
         # (Truncate the text if it exceeds the model's token limit - handled by the model/library usually, but good to be aware)
@@ -48,7 +44,7 @@ def analyze_sentiment(**news_item_data):
 
         # Upsert the generated embedding into the financial_articles ChromaDB collection
         chroma_service.add_document(
-            document_id=semantic_vector_id,
+            document_id=news_item.url,
             text=news_item.text,
             embedding=embedding,
             metadata={
@@ -61,14 +57,13 @@ def analyze_sentiment(**news_item_data):
                 "entities": entities_json_str
             }
         )
-        
-        # Assign the generated UUID to the semantic_vector_id field in the final AnalyzedArticle Pydantic model
+
         analyzed_article = AnalyzedArticle(
             url=news_item.url,
+            title=news_item.title,
             overall_sentiment_label=overall_sentiment["label"],
             overall_sentiment_score=overall_sentiment["score"],
             entities=entities,
-            semantic_vector_id=semantic_vector_id,
             processed_at=datetime.now(timezone.utc)
         )
         

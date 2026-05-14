@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     LLM_HOST: str = Field('http://host.docker.internal:11434', env='LLM_HOST')
     LLM_MODEL: str = Field('qwen3:8b', env='LLM_MODEL')
 
+    # Gemini
+    USE_GEMINI: bool = Field(False, env='USE_GEMINI')
+    GOOGLE_API_KEY: str = Field('', env='GOOGLE_API_KEY')
+    GEMINI_MODEL: str = Field('gemini-2.0-flash-lite-preview-02-05', env='GEMINI_MODEL')
+
     class Config:
         env_file = ".env"
 
