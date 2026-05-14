@@ -52,7 +52,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - chroma_data:/chroma/chroma
+      - chroma_data:/chroma/data
     networks:
       - backend_network
     restart: unless-stopped
@@ -162,7 +162,7 @@ services:
     ports:
       - "5540:5540"
     volumes:
-      - redisinsight_data:/db
+      - redisinsight_data:/data
     networks:
       - backend_network
     restart: unless-stopped
