@@ -34,6 +34,7 @@ public class ChartService {
         List<Map<String, Object>> data = articles.stream().map(article -> {
             Map<String, Object> map = new HashMap<>();
             map.put("url", article.getUrl());
+            map.put("title", article.getTitle());
             map.put("processed_at", article.getProcessedAt());
             map.put("overall_sentiment_score", article.getOverallSentimentScore());
             map.put("overall_sentiment_label", article.getOverallSentimentLabel());
@@ -116,27 +117,15 @@ public class ChartService {
         }
 
         String tickerFilter = filters.getOrDefault("ticker", "");
-        boolean fetchAll = tickerFilter.isEmpty() || "All".equalsIgnoreCase(tickerFilter);
-
-        if (!fetchAll && !userTickers.contains(tickerFilter)) {
-            fetchAll = true;
-        }
 
         String range = filters.getOrDefault("range", "24h");
-        OffsetDateTime since;
-        switch (range) {
-            case "7d":
-                since = OffsetDateTime.now().minusDays(7);
-                break;
-            case "30d":
-                since = OffsetDateTime.now().minusDays(30);
-                break;
-            default:
-                since = OffsetDateTime.now().minusHours(24);
-                break;
-        }
+        OffsetDateTime since = switch (range) {
+            case "7d" -> OffsetDateTime.now().minusDays(7);
+            case "30d" -> OffsetDateTime.now().minusDays(30);
+            default -> OffsetDateTime.now().minusHours(24);
+        };
 
-        List<String> targetTickers = fetchAll ? userTickers : List.of(tickerFilter);
+        List<String> targetTickers = !tickerFilter.isEmpty() ? List.of(tickerFilter) : List.of(userTickers.getFirst());
         List<EntitySentiment> sentiments = entitySentimentRepository.findByTickerInAndProcessedAtAfter(targetTickers, since);
 
         Map<OffsetDateTime, Map<String, Object>> groupedData = new TreeMap<>();
@@ -169,8 +158,8 @@ public class ChartService {
 
         return ChartDataResponse.builder()
                 .chartId("my-tickers")
-                .title(fetchAll ? "My Tickers Sentiment" : "My Tickers Sentiment: " + tickerFilter)
-                .description("Sentiment trend for " + (fetchAll ? "your tickers" : tickerFilter) + " over the last " + range)
+                .title("My Tickers Sentiment: " + tickerFilter)
+                .description("Sentiment trend for " + tickerFilter + " over the last " + range)
                 .availableFilters(List.of(
                         FilterDefinition.builder()
                                 .key("ticker")
@@ -195,22 +184,20 @@ public class ChartService {
         String range = filters.getOrDefault("range", "24h");
         OffsetDateTime now = OffsetDateTime.now();
         OffsetDateTime start;
-        ChronoUnit groupingUnit;
-
-        switch (range) {
-            case "7d":
+        ChronoUnit groupingUnit = switch (range) {
+            case "7d" -> {
                 start = now.minusDays(7);
-                groupingUnit = ChronoUnit.DAYS;
-                break;
-            case "30d":
+                yield ChronoUnit.DAYS;
+            }
+            case "30d" -> {
                 start = now.minusDays(30);
-                groupingUnit = ChronoUnit.DAYS;
-                break;
-            default:
+                yield ChronoUnit.DAYS;
+            }
+            default -> {
                 start = now.minusHours(24);
-                groupingUnit = ChronoUnit.HOURS;
-                break;
-        }
+                yield ChronoUnit.HOURS;
+            }
+        };
 
         List<Article> articles = articleRepository.findByProcessedAtBetween(start, now);
 

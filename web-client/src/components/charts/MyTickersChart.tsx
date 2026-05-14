@@ -196,7 +196,6 @@ export function MyTickersChart() {
                         filters={data?.available_filters || []}
                         activeFilters={filters}
                         onFilterChange={handleFilterChange}
-                        showAllOption={true}
                     />
                 </div>
                 <SentimentLegend />

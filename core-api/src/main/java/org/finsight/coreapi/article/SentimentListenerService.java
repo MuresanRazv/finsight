@@ -1,12 +1,7 @@
 package org.finsight.coreapi.article;
 
-import org.finsight.coreapi.article.Article;
-import org.finsight.coreapi.article.EntitySentiment;
 import org.finsight.coreapi.user.User;
-import org.finsight.coreapi.article.AnalyzedArticleDto;
-import org.finsight.coreapi.article.EntitySentimentDto;
 import org.finsight.coreapi.notification.Notification;
-import org.finsight.coreapi.article.ArticleRepository;
 import org.finsight.coreapi.notification.NotificationRepository;
 import org.finsight.coreapi.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,12 +32,18 @@ public class SentimentListenerService {
         log.info("Received message for URL: {}", message.url());
 
         try {
+            if (articleRepository.findFirstByUrl(message.url()).isPresent()) {
+                log.info("Article with URL {} already exists. Skipping processing.", message.url());
+                return;
+            }
+
             Article article = Article.builder()
                     .url(message.url())
+                    .processedAt(message.processedAt())
+                    .title(message.title())
                     .overallSentimentScore(message.overallSentimentScore())
                     .overallSentimentLabel(message.overallSentimentLabel())
                     .semanticVectorId(message.semanticVectorId())
-                    .processedAt(message.processedAt())
                     .build();
 
             if (message.entities() != null) {
@@ -116,6 +117,7 @@ public class SentimentListenerService {
     private AnalyzedArticleDto toDto(Article article, List<EntitySentiment> sentiments) {
         return new AnalyzedArticleDto(
                 article.getUrl(),
+                article.getTitle(),
                 article.getOverallSentimentScore(),
                 article.getOverallSentimentLabel(),
                 sentiments.stream().map(this::toDto).collect(Collectors.toList()),

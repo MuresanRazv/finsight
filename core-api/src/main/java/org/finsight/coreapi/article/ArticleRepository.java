@@ -12,6 +12,9 @@ public interface ArticleRepository extends JpaRepository<Article, ArticleId> {
     List<Article> findByProcessedAtBetween(OffsetDateTime start, OffsetDateTime end);
 
     @EntityGraph(attributePaths = {"entities"})
+    java.util.Optional<Article> findFirstByUrl(String url);
+
+    @EntityGraph(attributePaths = {"entities"})
     List<Article> findByUrlIn(List<String> urls);
 
     @EntityGraph(attributePaths = {"entities"})

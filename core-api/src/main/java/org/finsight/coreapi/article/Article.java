@@ -24,6 +24,7 @@ public class Article {
     @Column(name = "processed_at", nullable = false)
     private OffsetDateTime processedAt;
 
+    private String title;
     private Double overallSentimentScore;
     private String overallSentimentLabel;
     private String semanticVectorId;

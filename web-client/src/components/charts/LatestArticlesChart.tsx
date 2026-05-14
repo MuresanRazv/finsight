@@ -49,7 +49,7 @@ export function LatestArticlesChart() {
                   },
               ),
               title:
-                  article.url
+                  article.title || article.url
                       .split('/')
                       .pop()
                       ?.replace('.html', '')
