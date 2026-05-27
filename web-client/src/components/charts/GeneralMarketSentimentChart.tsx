@@ -17,6 +17,7 @@ import { getGeneralMarketSentiment } from '@/app/actions/charts'
 import { ChartDataResponse } from '@/lib/types/charts'
 import { SentimentLegend } from './SentimentLegend'
 import { ChartFilters } from './ChartFilters'
+import { ChartSkeleton } from './ChartSkeleton'
 
 export function GeneralMarketSentimentChart() {
     const [data, setData] = useState<ChartDataResponse | null>(null)
@@ -83,11 +84,7 @@ export function GeneralMarketSentimentChart() {
     }
 
     if (loading && !data) {
-        return (
-            <Card className='flex h-[500px] w-full items-center justify-center'>
-                <div className='text-muted-foreground'>Loading...</div>
-            </Card>
-        )
+        return <ChartSkeleton type='area' title='General Market Sentiment' />
     }
 
     const chartData = Array.isArray(data?.data) ? data.data : []

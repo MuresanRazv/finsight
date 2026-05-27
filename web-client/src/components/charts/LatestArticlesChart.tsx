@@ -7,6 +7,8 @@ import { ChartDataResponse } from '@/lib/types/charts'
 import { ArticleDto } from '@/lib/types/article'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ChartSkeleton } from './ChartSkeleton'
+import { TickerBadge } from '@/components/ui/ticker-badge'
 
 export function LatestArticlesChart() {
     const [data, setData] = useState<ChartDataResponse | null>(null)
@@ -29,11 +31,7 @@ export function LatestArticlesChart() {
     }, [])
 
     if (loading && !data) {
-        return (
-            <Card className='flex h-[500px] w-full items-center justify-center'>
-                <div className='text-muted-foreground'>Loading...</div>
-            </Card>
-        )
+        return <ChartSkeleton type='list' title='Latest Fetched Articles' />
     }
 
     const chartData = Array.isArray(data?.data)
@@ -49,11 +47,13 @@ export function LatestArticlesChart() {
                   },
               ),
               title:
-                  article.title || article.url
+                  article.title ||
+                  article.url
                       .split('/')
                       .pop()
                       ?.replace('.html', '')
-                      .replace(/-/g, ' ') || 'Unknown Article',
+                      .replace(/-/g, ' ') ||
+                  'Unknown Article',
           }))
         : []
 
@@ -145,18 +145,43 @@ export function LatestArticlesChart() {
                                                             !!e.ticker ||
                                                             !!e.name,
                                                     )
-                                                    .map((entity, eIdx) => (
-                                                        <span
-                                                            key={eIdx}
-                                                            className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
-                                                        >
-                                                            {!!entity.ticker &&
+                                                    .map((entity, eIdx) => {
+                                                        const displayName =
+                                                            entity.ticker &&
                                                             entity.ticker
                                                                 .length > 0
                                                                 ? entity.ticker
-                                                                : entity.name}
-                                                        </span>
-                                                    ))}
+                                                                : entity.name
+
+                                                        if (
+                                                            entity.ticker &&
+                                                            entity.ticker
+                                                                .length > 0
+                                                        ) {
+                                                            return (
+                                                                <TickerBadge
+                                                                    key={eIdx}
+                                                                    ticker={
+                                                                        entity.ticker
+                                                                    }
+                                                                    className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
+                                                                >
+                                                                    {
+                                                                        displayName
+                                                                    }
+                                                                </TickerBadge>
+                                                            )
+                                                        }
+
+                                                        return (
+                                                            <span
+                                                                key={eIdx}
+                                                                className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
+                                                            >
+                                                                {displayName}
+                                                            </span>
+                                                        )
+                                                    })}
                                                 {article.entities.length >
                                                     3 && (
                                                     <span className='text-muted-foreground px-1 py-0.5 text-[10px]'>

@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getPopularTickers } from '@/app/actions/charts'
 import { ChartDataResponse } from '@/lib/types/charts'
 import { ChartFilters } from './ChartFilters'
+import { ChartSkeleton } from './ChartSkeleton'
 
 const COLORS = [
     '#2563eb', // blue-600
@@ -73,11 +74,7 @@ export function PopularTickersChart() {
     }
 
     if (loading && !data) {
-        return (
-            <Card className='flex h-[500px] w-full items-center justify-center'>
-                <div className='text-muted-foreground'>Loading...</div>
-            </Card>
-        )
+        return <ChartSkeleton type='bar' title='Popular Tickers' />
     }
 
     const chartData = Array.isArray(data?.data) ? data.data : []

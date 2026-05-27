@@ -17,6 +17,7 @@ import { getMyTickers } from '@/app/actions/charts'
 import { ChartDataResponse } from '@/lib/types/charts'
 import { ChartFilters } from './ChartFilters'
 import { SentimentLegend } from './SentimentLegend'
+import { ChartSkeleton } from './ChartSkeleton'
 
 const CustomDot = (props: any) => {
     const { cx, cy, value } = props
@@ -119,11 +120,7 @@ export function MyTickersChart() {
     }
 
     if (loading && !data) {
-        return (
-            <Card className='flex h-[500px] w-full items-center justify-center'>
-                <div className='text-muted-foreground'>Loading...</div>
-            </Card>
-        )
+        return <ChartSkeleton type='area' title='My Tickers' />
     }
 
     const chartData = Array.isArray(data?.data) ? data.data : []
