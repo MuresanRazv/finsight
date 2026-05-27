@@ -2,6 +2,7 @@
 
 import { SearchResultItem } from '@/lib/types/search'
 import { ExternalLink } from 'lucide-react'
+import { TickerBadge } from '@/components/ui/ticker-badge'
 
 interface SearchResultProps {
     results: SearchResultItem[]
@@ -13,7 +14,7 @@ export function SearchResult({ results }: SearchResultProps) {
     }
 
     return (
-        <div className='space-y-4 dark'>
+        <div className='dark space-y-4'>
             {results.map((result, index) => (
                 <SearchResultCard key={index} result={result} />
             ))}
@@ -31,10 +32,10 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
     }
 
     return (
-        <div className='bg-card border border-border rounded-xl p-5 flex flex-col sm:flex-row justify-between gap-4 hover:border-muted-foreground/50 transition-colors'>
-            <div className='space-y-3 flex-1'>
+        <div className='bg-card border-border hover:border-muted-foreground/50 flex flex-col justify-between gap-4 rounded-xl border p-5 transition-colors sm:flex-row'>
+            <div className='flex-1 space-y-3'>
                 <div className='flex items-start gap-2'>
-                    <h3 className='text-xl font-semibold text-foreground leading-tight'>
+                    <h3 className='text-foreground text-xl leading-tight font-semibold'>
                         {result.title}
                     </h3>
                     <a
@@ -43,25 +44,39 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
                         rel='noopener noreferrer'
                         className='text-muted-foreground hover:text-foreground mt-1 shrink-0'
                     >
-                        <ExternalLink className='w-4 h-4' />
+                        <ExternalLink className='h-4 w-4' />
                     </a>
                 </div>
-                
-                <div className='text-sm text-muted-foreground'>
-                    {result.source} • {new Date(result.published_at).toLocaleDateString()}
+
+                <div className='text-muted-foreground text-sm'>
+                    {result.source} •{' '}
+                    {new Date(result.published_at).toLocaleDateString()}
                 </div>
-                
-                <div className='flex items-center flex-wrap gap-3 pt-1'>
-                    {result.entities.map((entity, i) => (
-                        <span
-                            key={i}
-                            className='px-2.5 py-1 rounded-md bg-secondary text-secondary-foreground text-xs font-medium'
-                        >
-                            {entity.name}
-                            {entity.ticker && ` (${entity.ticker})`}
-                        </span>
-                    ))}
-                    <span className='text-xs text-muted-foreground'>
+
+                <div className='flex flex-wrap items-center gap-3 pt-1'>
+                    {result.entities.map((entity, i) => {
+                        if (entity.ticker && entity.ticker.length > 0) {
+                            return (
+                                <TickerBadge
+                                    key={i}
+                                    ticker={entity.ticker}
+                                    className='bg-secondary text-secondary-foreground rounded-md px-2.5 py-1 text-xs font-medium'
+                                >
+                                    {entity.name} ({entity.ticker})
+                                </TickerBadge>
+                            )
+                        }
+
+                        return (
+                            <span
+                                key={i}
+                                className='bg-secondary text-secondary-foreground rounded-md px-2.5 py-1 text-xs font-medium'
+                            >
+                                {entity.name}
+                            </span>
+                        )
+                    })}
+                    <span className='text-muted-foreground text-xs'>
                         Relevance:{' '}
                         <span className='text-foreground font-medium'>
                             {(result.relevance_score * 100).toFixed(0)}%
@@ -69,14 +84,14 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
                     </span>
                 </div>
             </div>
-            
-            <div className='flex flex-col items-end shrink-0 space-y-2'>
+
+            <div className='flex shrink-0 flex-col items-end space-y-2'>
                 <span
-                    className={`px-4 py-1 rounded-full text-xs font-semibold tracking-wide capitalize ${sentimentClasses}`}
+                    className={`rounded-full px-4 py-1 text-xs font-semibold tracking-wide capitalize ${sentimentClasses}`}
                 >
                     {result.sentiment_label}
                 </span>
-                <span className='text-xs text-muted-foreground'>
+                <span className='text-muted-foreground text-xs'>
                     Confidence Score:{' '}
                     <span className='text-foreground font-medium'>
                         {result.sentiment_score.toFixed(2)}

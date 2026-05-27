@@ -3,6 +3,7 @@
 import { ChatResponse, ArticleStats } from '@/lib/types/chat'
 import { ExternalLink, Brain } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { TickerBadge } from '@/components/ui/ticker-badge'
 
 interface ChatResultProps {
     result: ChatResponse
@@ -14,18 +15,18 @@ export function ChatResult({ result }: ChatResultProps) {
     }
 
     return (
-        <div className='space-y-10 dark'>
+        <div className='dark space-y-10'>
             {/* AI Analysis Container */}
-            <div className='bg-card border border-border rounded-2xl p-6 shadow-[0_0_20px_rgba(56,189,248,0.1)] dark:border-blue-500/30'>
-                <div className='flex items-center gap-3 mb-4'>
-                    <div className='w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20'>
-                        <Brain className='w-5 h-5' />
+            <div className='bg-card border-border rounded-2xl border p-6 shadow-[0_0_20px_rgba(56,189,248,0.1)] dark:border-blue-500/30'>
+                <div className='mb-4 flex items-center gap-3'>
+                    <div className='flex h-10 w-10 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-500'>
+                        <Brain className='h-5 w-5' />
                     </div>
-                    <h2 className='text-xl font-semibold text-foreground'>
+                    <h2 className='text-foreground text-xl font-semibold'>
                         AI Analysis
                     </h2>
                 </div>
-                <div className='prose prose-sm dark:prose-invert max-w-none text-muted-foreground prose-p:leading-relaxed'>
+                <div className='prose prose-sm dark:prose-invert text-muted-foreground prose-p:leading-relaxed max-w-none'>
                     <ReactMarkdown>{result.answer}</ReactMarkdown>
                 </div>
             </div>
@@ -33,10 +34,10 @@ export function ChatResult({ result }: ChatResultProps) {
             {/* Sources Section */}
             {result.sources && result.sources.length > 0 && (
                 <section>
-                    <h3 className='text-xl font-semibold text-foreground mb-6'>
+                    <h3 className='text-foreground mb-6 text-xl font-semibold'>
                         Sources Analyzed
                     </h3>
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
                         {result.sources.map((source, index) => (
                             <SourceCard key={index} source={source} />
                         ))}
@@ -48,12 +49,10 @@ export function ChatResult({ result }: ChatResultProps) {
 }
 
 function SourceCard({ source }: { source: ArticleStats }) {
-    let sentimentBadgeClasses =
-        'bg-yellow-500/20 text-yellow-400'
+    let sentimentBadgeClasses = 'bg-yellow-500/20 text-yellow-400'
 
     if (source.overall_sentiment_label === 'positive') {
-        sentimentBadgeClasses =
-            'bg-emerald-500/20 text-emerald-400'
+        sentimentBadgeClasses = 'bg-emerald-500/20 text-emerald-400'
     } else if (source.overall_sentiment_label === 'negative') {
         sentimentBadgeClasses = 'bg-red-500/20 text-red-400'
     }
@@ -61,52 +60,80 @@ function SourceCard({ source }: { source: ArticleStats }) {
     const domain = new URL(source.url).hostname.replace('www.', '')
 
     return (
-        <div className='bg-card border border-border rounded-xl p-4 flex flex-col justify-between h-32 hover:border-muted-foreground/50 transition-colors'>
-            <div className='flex justify-between items-start'>
+        <div className='bg-card border-border hover:border-muted-foreground/50 flex h-32 flex-col justify-between rounded-xl border p-4 transition-colors'>
+            <div className='flex items-start justify-between'>
                 <div className='flex items-center gap-2'>
-                    <div className='w-6 h-6 bg-secondary rounded flex items-center justify-center text-[10px] font-bold text-secondary-foreground uppercase overflow-hidden shrink-0'>
+                    <div className='bg-secondary text-secondary-foreground flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded text-[10px] font-bold uppercase'>
                         {domain.substring(0, 2)}
                     </div>
                     <a
                         href={source.url}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='text-sm font-medium text-muted-foreground hover:text-foreground truncate flex items-center gap-1'
+                        className='text-muted-foreground hover:text-foreground flex items-center gap-1 truncate text-sm font-medium'
                         title={domain}
                     >
-                        <span className='truncate max-w-[120px]'>{domain}</span>
-                        <ExternalLink className='w-3 h-3 opacity-50 shrink-0' />
+                        <span className='max-w-[120px] truncate'>{domain}</span>
+                        <ExternalLink className='h-3 w-3 shrink-0 opacity-50' />
                     </a>
                 </div>
                 <span
-                    className={`px-2 py-1 rounded text-xs font-medium capitalize ${sentimentBadgeClasses}`}
+                    className={`rounded px-2 py-1 text-xs font-medium capitalize ${sentimentBadgeClasses}`}
                 >
                     {source.overall_sentiment_label}
                 </span>
             </div>
 
             {source.entities && source.entities.length > 0 && (
-                <div className='flex gap-2 mt-4 text-xs font-medium overflow-x-auto pb-1 scrollbar-hide'>
+                <div className='scrollbar-hide mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium'>
                     {source.entities.slice(0, 3).map((entity, i) => {
-                        let eClasses =
-                            'bg-yellow-500/10 text-yellow-400'
+                        let eClasses = 'bg-yellow-500/10 text-yellow-400'
                         if (entity.sentiment_label === 'positive')
-                            eClasses =
-                                'bg-emerald-500/10 text-emerald-400'
+                            eClasses = 'bg-emerald-500/10 text-emerald-400'
                         if (entity.sentiment_label === 'negative')
                             eClasses = 'bg-red-500/10 text-red-400'
+
+                        const displayName = entity.ticker || entity.name
+                        const content = (
+                            <>
+                                {displayName}
+                                {!!entity.sentiment_score && (
+                                    <span className='ml-1 text-[10px] font-semibold opacity-90'>
+                                        (
+                                        {Math.round(
+                                            entity.sentiment_score * 100,
+                                        )}
+                                        %{' '}
+                                        {entity.sentiment_label === 'positive'
+                                            ? 'Pos'
+                                            : entity.sentiment_label ===
+                                                'negative'
+                                              ? 'Neg'
+                                              : 'Neu'}
+                                        )
+                                    </span>
+                                )}
+                            </>
+                        )
+
+                        if (entity.ticker && entity.ticker.length > 0) {
+                            return (
+                                <TickerBadge
+                                    key={i}
+                                    ticker={entity.ticker}
+                                    className={`shrink-0 rounded px-2 py-1 whitespace-nowrap ${eClasses}`}
+                                >
+                                    {content}
+                                </TickerBadge>
+                            )
+                        }
 
                         return (
                             <span
                                 key={i}
-                                className={`px-2 py-1 rounded shrink-0 whitespace-nowrap ${eClasses}`}
+                                className={`shrink-0 rounded px-2 py-1 whitespace-nowrap ${eClasses}`}
                             >
-                                {entity.ticker || entity.name}{' '}
-                                {!!entity.sentiment_score
-                                    ? (entity.sentiment_score > 0 ? '+' : '') +
-                                      (entity.sentiment_score * 100).toFixed(0) +
-                                      '%'
-                                    : ''}
+                                {content}
                             </span>
                         )
                     })}
