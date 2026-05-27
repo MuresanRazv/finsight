@@ -19,20 +19,26 @@ export function TopNav() {
     return (
         <header className='relative z-10 flex h-16 items-center justify-between border-b border-[#334155] bg-[#1e2637] px-8'>
             {/* Left side: Page Title & Subtitle (conditionally rendered) */}
-            <div className="flex-1">
+            <div className='flex-1'>
                 {pathname === '/search' && (
                     <div>
-                        <h1 className='text-xl font-semibold text-white'>Semantic Search</h1>
-                        <p className='text-xs text-[#94a3b8] mt-0.5'>
-                            Discover hidden connections across thousands of financial sources.
+                        <h1 className='text-xl font-semibold text-white'>
+                            Semantic Search
+                        </h1>
+                        <p className='mt-0.5 text-xs text-[#94a3b8]'>
+                            Discover hidden connections across thousands of
+                            financial sources.
                         </p>
                     </div>
                 )}
                 {pathname === '/chat' && (
                     <div>
-                        <h1 className='text-xl font-semibold text-white'>AI Financial Chat</h1>
-                        <p className='text-xs text-[#94a3b8] mt-0.5'>
-                            Chat with an AI assistant for financial analysis and insights.
+                        <h1 className='text-xl font-semibold text-white'>
+                            AI Financial Chat
+                        </h1>
+                        <p className='mt-0.5 text-xs text-[#94a3b8]'>
+                            Chat with an AI assistant for financial analysis and
+                            insights.
                         </p>
                     </div>
                 )}
@@ -42,19 +48,23 @@ export function TopNav() {
             <div className='flex items-center space-x-6'>
                 {/* Search/Chat Toggle Switch */}
                 {isSearchOrChat && (
-                    <div className='flex items-center bg-[#243046] rounded-full p-1 border border-[#334155]'>
+                    <div className='flex items-center rounded-full border border-[#334155] bg-[#243046] p-1'>
                         <button
                             onClick={() => router.push('/search')}
-                            className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
-                                pathname === '/search' ? 'bg-[#293b5a] text-white' : 'text-[#94a3b8] hover:text-white'
+                            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                                pathname === '/search'
+                                    ? 'bg-[#293b5a] text-white'
+                                    : 'text-[#94a3b8] hover:text-white'
                             }`}
                         >
                             Semantic
                         </button>
                         <button
                             onClick={() => router.push('/chat')}
-                            className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${
-                                pathname === '/chat' ? 'bg-[#293b5a] text-white' : 'text-[#94a3b8] hover:text-white'
+                            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                                pathname === '/chat'
+                                    ? 'bg-[#293b5a] text-white'
+                                    : 'text-[#94a3b8] hover:text-white'
                             }`}
                         >
                             AI Chat

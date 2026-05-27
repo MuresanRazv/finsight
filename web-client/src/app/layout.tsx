@@ -15,7 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
     title: 'FinSight',
-    description: 'Discover hidden connections across thousands of financial sources using natural language.',
+    description:
+        'Discover hidden connections across thousands of financial sources using natural language.',
 }
 
 export default function RootLayout({

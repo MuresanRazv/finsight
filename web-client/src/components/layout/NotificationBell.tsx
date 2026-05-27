@@ -194,7 +194,7 @@ export function NotificationBell() {
                                     }`}
                                 >
                                     {!notification.is_read && (
-                                        <div className='absolute left-1 top-4 h-2 w-2 rounded-full bg-blue-500'></div>
+                                        <div className='absolute top-4 left-1 h-2 w-2 rounded-full bg-blue-500'></div>
                                     )}
                                     <div className='flex items-center justify-between'>
                                         <div className='flex items-center gap-2'>
@@ -210,7 +210,8 @@ export function NotificationBell() {
                                                         '') === 'positive'
                                                         ? 'bg-green-500/20 text-green-400'
                                                         : (notification.sentiment_label ||
-                                                              '') === 'negative'
+                                                                '') ===
+                                                            'negative'
                                                           ? 'bg-red-500/20 text-red-400'
                                                           : 'bg-slate-500/20 text-slate-400'
                                                 }`}

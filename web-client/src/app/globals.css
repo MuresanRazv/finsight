@@ -68,6 +68,9 @@
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.25 0.03 260);
 
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.25 0.03 260);
+
   --sidebar: oklch(0.98 0.01 260);
   --sidebar-border: oklch(0.91 0.01 260);
 }
@@ -97,6 +100,9 @@
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.98 0.01 262 / 0.3);
+
+  --popover: oklch(0.248 0.035 262);
+  --popover-foreground: oklch(0.98 0.01 262);
 
   --sidebar: oklch(0.22 0.03 262);
 }

@@ -28,7 +28,9 @@ const SearchContext = createContext<SearchState | undefined>(undefined)
 
 export function SearchStateProvider({ children }: { children: ReactNode }) {
     const [searchQuery, setSearchQuery] = useState('')
-    const [searchResult, setSearchResult] = useState<SearchResultItem[] | null>(null)
+    const [searchResult, setSearchResult] = useState<SearchResultItem[] | null>(
+        null,
+    )
     const [searchHasSearched, setSearchHasSearched] = useState(false)
 
     const [chatQuery, setChatQuery] = useState('')
@@ -59,7 +61,7 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
                 searchHasSearched,
                 setSearchHasSearched,
                 resetSearchState,
-                
+
                 chatQuery,
                 setChatQuery,
                 chatResult,
@@ -77,7 +79,9 @@ export function SearchStateProvider({ children }: { children: ReactNode }) {
 export function useSearchState() {
     const context = useContext(SearchContext)
     if (context === undefined) {
-        throw new Error('useSearchState must be used within a SearchStateProvider')
+        throw new Error(
+            'useSearchState must be used within a SearchStateProvider',
+        )
     }
     return context
 }
