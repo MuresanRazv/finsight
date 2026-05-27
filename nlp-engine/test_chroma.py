@@ -34,7 +34,7 @@ def test_chromadb():
 
     # 3. Peek at the first 2 raw records (The Matrix)
     print("\n👀 Peeking at the first 2 records in the database:")
-    peek_data = collection.peek(2)
+    peek_data = collection.peek(20)
 
     for i in range(len(peek_data['ids'])):
         print(f"\n--- Record {i + 1} ---")
