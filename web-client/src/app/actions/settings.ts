@@ -108,10 +108,7 @@ export async function updateUserSettings(data: UserSettingsValues) {
     }
 
     const tickersArray = data.tickers
-        ? data.tickers
-              .split(',')
-              .map((t) => t.trim())
-              .filter((t) => t.length > 0)
+        ? data.tickers.map((t) => t.trim()).filter((t) => t.length > 0)
         : []
 
     const response = await fetch(`${API_URL}/user/settings`, {

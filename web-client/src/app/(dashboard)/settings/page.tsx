@@ -22,6 +22,7 @@ import {
     FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { TagInput } from '@/components/ui/tag-input'
 import { Button } from '@/components/ui/button'
 import {
     userProfileSchema,
@@ -65,7 +66,7 @@ export default function SettingsPage() {
     const settingsForm = useForm<UserSettingsValues>({
         resolver: zodResolver(userSettingsSchema),
         defaultValues: {
-            tickers: '',
+            tickers: [],
         },
     })
 
@@ -88,9 +89,7 @@ export default function SettingsPage() {
 
                 if (settingsData) {
                     settingsForm.reset({
-                        tickers: settingsData.tickers
-                            ? settingsData.tickers.join(', ')
-                            : '',
+                        tickers: settingsData.tickers || [],
                     })
                 }
             } catch (error) {
@@ -114,7 +113,7 @@ export default function SettingsPage() {
                     description:
                         'Your profile information has been updated successfully.',
                 })
-            } catch (error) {
+            } catch {
                 toast.error('Error updating profile', {
                     description: 'Failed to update profile. Please try again.',
                 })
@@ -130,7 +129,7 @@ export default function SettingsPage() {
                     description: 'Your password has been updated successfully.',
                 })
                 passwordForm.reset()
-            } catch (error) {
+            } catch {
                 toast.error('Error changing password', {
                     description: 'Failed to change password. Please try again.',
                 })
@@ -146,7 +145,7 @@ export default function SettingsPage() {
                     description:
                         'Your watchlist has been updated successfully.',
                 })
-            } catch (error) {
+            } catch {
                 toast.error('Error updating settings', {
                     description: 'Failed to update settings. Please try again.',
                 })
@@ -246,8 +245,7 @@ export default function SettingsPage() {
                     <CardHeader>
                         <CardTitle>Watchlist Configuration</CardTitle>
                         <CardDescription>
-                            Manage the tickers in your watchlist
-                            (comma-separated).
+                            Manage the tickers in your watchlist.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -265,15 +263,16 @@ export default function SettingsPage() {
                                         <FormItem>
                                             <FormLabel>Tickers</FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    placeholder='AAPL, MSFT, GOOGL'
-                                                    {...field}
+                                                <TagInput
+                                                    placeholder='Add ticker (e.g., AAPL)...'
+                                                    value={field.value}
+                                                    onChange={field.onChange}
                                                     disabled={isPending}
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                Enter stock tickers separated by
-                                                commas (e.g., AAPL, MSFT).
+                                                Type a ticker and press Enter,
+                                                comma, or space to add it.
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>

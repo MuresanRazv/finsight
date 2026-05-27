@@ -11,7 +11,7 @@ export const changePasswordSchema = z.object({
 })
 
 export const userSettingsSchema = z.object({
-    tickers: z.string().optional(),
+    tickers: z.array(z.string()).optional(),
 })
 
 export type UserProfileValues = z.infer<typeof userProfileSchema>
