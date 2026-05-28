@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Bell, ExternalLink } from 'lucide-react'
+import { Bell, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
     Popover,
@@ -228,18 +229,22 @@ export function NotificationBell() {
                                     </div>
                                     <div className='relative z-20 mt-1'>
                                         <p className='truncate text-sm leading-none font-medium'>
-                                            <a
-                                                href={notification.article_url}
-                                                target='_blank'
-                                                rel='noopener noreferrer'
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
+                                            <Link
+                                                href={`/articles/deep-dive?${new URLSearchParams({
+                                                    title: `${notification.ticker} Analysis Report`,
+                                                    url: notification.article_url,
+                                                    source: 'FinSight Feed',
+                                                    published_at: notification.article_processed_at || notification.created_at,
+                                                    sentiment_score: String(notification.sentiment_score),
+                                                    sentiment_label: notification.sentiment_label,
+                                                    entities: JSON.stringify([{ ticker: notification.ticker }])
+                                                }).toString()}`}
+                                                onClick={() => setIsOpen(false)}
                                                 className='inline-flex items-center gap-1 text-blue-400 hover:underline'
                                             >
-                                                View Article
-                                                <ExternalLink className='h-3 w-3 opacity-50' />
-                                            </a>
+                                                View Analysis
+                                                <ArrowRight className='h-3 w-3 opacity-50' />
+                                            </Link>
                                         </p>
                                     </div>
                                 </div>
