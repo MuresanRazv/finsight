@@ -186,7 +186,7 @@ export function MyTickersChart() {
 
         // Now positive is > 0.3, neutral is -0.3 to 0.3, negative is < -0.3
         const getColor = (val: number) =>
-            val > 0.3 ? '#22c55e' : val < -0.3 ? '#ef4444' : '#eab308'
+            val > 0.3 ? '#10B981' : val < -0.3 ? '#EF4444' : '#eab308'
 
         if (range === 0) {
             const color = getColor(max)
@@ -203,14 +203,14 @@ export function MyTickersChart() {
 
         if (min < 0.3 && max > 0.3) {
             const off = (max - 0.3) / range
-            stops.push(<stop key='pos-1' offset={off} stopColor='#22c55e' />)
+            stops.push(<stop key='pos-1' offset={off} stopColor='#10B981' />)
             stops.push(<stop key='pos-2' offset={off} stopColor='#eab308' />)
         }
 
         if (min < -0.3 && max > -0.3) {
             const off = (max - -0.3) / range
             stops.push(<stop key='neg-1' offset={off} stopColor='#eab308' />)
-            stops.push(<stop key='neg-2' offset={off} stopColor='#ef4444' />)
+            stops.push(<stop key='neg-2' offset={off} stopColor='#EF4444' />)
         }
 
         stops.push(<stop key='end' offset='100%' stopColor={getColor(min)} />)
@@ -488,8 +488,8 @@ export function MyTickersChart() {
                                                 className={cn(
                                                     'font-mono text-[10px] font-bold',
                                                     qData.changePercent >= 0
-                                                        ? 'text-emerald-400'
-                                                        : 'text-red-400',
+                                                        ? 'text-sentiment-positive'
+                                                        : 'text-sentiment-negative',
                                                 )}
                                             >
                                                 {qData.changePercent >= 0

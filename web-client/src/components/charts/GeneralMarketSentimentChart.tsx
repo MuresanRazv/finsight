@@ -100,7 +100,7 @@ export function GeneralMarketSentimentChart() {
         const range = max - min
 
         const getColor = (val: number) =>
-            val > 0.3 ? '#22c55e' : val < -0.3 ? '#ef4444' : '#eab308'
+            val > 0.3 ? '#10B981' : val < -0.3 ? '#EF4444' : '#eab308'
 
         if (range === 0) {
             const color = getColor(max)
@@ -128,7 +128,7 @@ export function GeneralMarketSentimentChart() {
                 <stop
                     key='pos-1'
                     offset={off}
-                    stopColor='#22c55e'
+                    stopColor='#10B981'
                     stopOpacity={0.5}
                 />,
             )
@@ -156,7 +156,7 @@ export function GeneralMarketSentimentChart() {
                 <stop
                     key='neg-2'
                     offset={off}
-                    stopColor='#ef4444'
+                    stopColor='#EF4444'
                     stopOpacity={0.5}
                 />,
             )

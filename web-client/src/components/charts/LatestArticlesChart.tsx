@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChartSkeleton } from './ChartSkeleton'
 import { TickerBadge } from '@/components/ui/ticker-badge'
+import Link from 'next/link'
 
 export function LatestArticlesChart() {
     const [data, setData] = useState<ChartDataResponse | null>(null)
@@ -60,11 +61,11 @@ export function LatestArticlesChart() {
     const getSentimentColor = (label: string) => {
         switch (label?.toLowerCase()) {
             case 'positive':
-                return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
+                return 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/20'
             case 'negative':
-                return 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20'
+                return 'bg-sentiment-negative/10 text-sentiment-negative border-sentiment-negative/20'
             default:
-                return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20'
+                return 'bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20'
         }
     }
 
@@ -89,22 +90,41 @@ export function LatestArticlesChart() {
                                     className='hover:bg-muted/50 flex flex-col gap-2 p-4 transition-colors'
                                 >
                                     <div className='flex items-start justify-between gap-4'>
-                                        <a
-                                            href={article.url}
-                                            target='_blank'
-                                            rel='noreferrer'
-                                            className='text-sm leading-tight font-medium hover:underline'
+                                        <Link
+                                            href={{
+                                                pathname: '/articles/deep-dive',
+                                                query: {
+                                                    title: article.title,
+                                                    url: article.url,
+                                                    source: 'Global Feed',
+                                                    published_at: article.processed_at,
+                                                    sentiment_label: article.overall_sentiment_label,
+                                                    sentiment_score: article.overall_sentiment_score,
+                                                    entities: JSON.stringify(article.entities),
+                                                }
+                                            }}
+                                            className='text-sm leading-tight font-medium hover:text-primary transition-colors cursor-pointer'
                                             title={article.url}
                                         >
                                             <span className='capitalize'>
                                                 {article.title}
                                             </span>
-                                        </a>
+                                        </Link>
                                         <Badge
                                             variant='outline'
                                             className={getSentimentColor(
                                                 article.overall_sentiment_label,
                                             )}
+                                            style={
+                                                article.overall_sentiment_label?.toLowerCase() !== 'positive' &&
+                                                article.overall_sentiment_label?.toLowerCase() !== 'negative'
+                                                    ? {
+                                                          backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                                                          color: '#eab308',
+                                                          borderColor: 'rgba(234, 179, 8, 0.2)',
+                                                      }
+                                                    : undefined
+                                            }
                                         >
                                             {article.overall_sentiment_label}
                                         </Badge>

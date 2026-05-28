@@ -17,7 +17,7 @@ export function TopNav() {
     const isSearchOrChat = pathname === '/search' || pathname === '/chat'
 
     return (
-        <header className='relative z-10 flex h-16 items-center justify-between border-b border-[#334155] bg-[#1e2637] px-8'>
+        <header className='relative z-10 flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-8'>
             {/* Left side: Page Title & Subtitle (conditionally rendered) */}
             <div className='flex-1'>
                 {pathname === '/search' && (
@@ -48,13 +48,13 @@ export function TopNav() {
             <div className='flex items-center space-x-6'>
                 {/* Search/Chat Toggle Switch */}
                 {isSearchOrChat && (
-                    <div className='flex items-center rounded-full border border-[#334155] bg-[#243046] p-1'>
+                    <div className='flex items-center rounded-full border border-border bg-surface-container p-1'>
                         <button
                             onClick={() => router.push('/search')}
                             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                                 pathname === '/search'
-                                    ? 'bg-[#293b5a] text-white'
-                                    : 'text-[#94a3b8] hover:text-white'
+                                    ? 'bg-accent text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             Semantic
@@ -63,8 +63,8 @@ export function TopNav() {
                             onClick={() => router.push('/chat')}
                             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                                 pathname === '/chat'
-                                    ? 'bg-[#293b5a] text-white'
-                                    : 'text-[#94a3b8] hover:text-white'
+                                    ? 'bg-accent text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
                             AI Chat
@@ -73,17 +73,17 @@ export function TopNav() {
                 )}
 
                 {/* Icons */}
-                <div className='flex items-center space-x-4 text-[#94a3b8]'>
+                <div className='flex items-center space-x-4 text-muted-foreground'>
                     <NotificationBell />
                     <button
                         onClick={() => router.push('/settings')}
-                        className='transition-colors hover:text-white'
+                        className='transition-colors hover:text-foreground'
                     >
                         <User className='h-5 w-5' />
                     </button>
                     <button
                         onClick={handleLogout}
-                        className='transition-colors hover:text-white'
+                        className='transition-colors hover:text-foreground'
                     >
                         <LogOut className='h-5 w-5' />
                     </button>

@@ -10,6 +10,7 @@ interface TickerBadgeProps {
     className?: string
     showParentheses?: boolean
     children?: React.ReactNode
+    style?: React.CSSProperties
 }
 
 export function TickerBadge({
@@ -17,6 +18,7 @@ export function TickerBadge({
     className,
     showParentheses = false,
     children,
+    style,
 }: TickerBadgeProps) {
     const cleanTicker = ticker.trim().replace(/[()]/g, '').toUpperCase()
     const [isOpen, setIsOpen] = useState(false)
@@ -80,6 +82,7 @@ export function TickerBadge({
                         'bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex cursor-pointer items-center justify-center rounded-md px-2.5 py-1 text-xs font-medium transition-colors select-none',
                         className,
                     )}
+                    style={style}
                 >
                     {children ||
                         (showParentheses ? `(${cleanTicker})` : cleanTicker)}

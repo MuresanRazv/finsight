@@ -35,6 +35,18 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent: var(--sidebar-accent);
 
+  /* Cognitive Finance custom mappings */
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-ai-glow: var(--ai-glow);
+  --color-sentiment-positive: var(--sentiment-positive);
+  --color-sentiment-negative: var(--sentiment-negative);
+  --color-sentiment-neutral: var(--sentiment-neutral);
+
   /* Radius Logic */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -45,66 +57,96 @@
 :root {
   --radius: 0.625rem;
 
-  /* Brand Core: #182132 (oklch(27.9% 0.041 260)) */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.25 0.03 260); /* Deep navy text instead of black */
+  /* Cognitive Finance Dark Theme as Default */
+  --background: #051424;
+  --foreground: #d4e4fa;
 
-  --primary: oklch(27.9% 0.041 260);
-  --primary-foreground: oklch(0.98 0.01 260);
+  --primary: #a4c9ff;
+  --primary-foreground: #00315d;
 
-  --secondary: oklch(0.96 0.01 260);
-  --secondary-foreground: oklch(0.28 0.04 260);
+  --secondary: #3e495d;
+  --secondary-foreground: #aeb9d0;
 
-  --muted: oklch(0.96 0.01 260);
-  --muted-foreground: oklch(0.45 0.02 260);
+  --muted: #122131;
+  --muted-foreground: #aeb9d0;
 
-  --accent: oklch(0.92 0.02 260);
-  --accent-foreground: oklch(0.28 0.04 260);
+  --accent: #1c2b3c;
+  --accent-foreground: #d4e4fa;
 
-  --border: oklch(0.91 0.01 260);
-  --input: oklch(0.91 0.01 260);
-  --ring: oklch(0.28 0.04 260 / 0.5);
+  --destructive: #EF4444;
+  --destructive-foreground: #ffffff;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.03 260);
+  --border: #1c2b3c;
+  --input: #1c2b3c;
+  --ring: #3B82F6;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.03 260);
+  --card: #0d1c2d;
+  --card-foreground: #d4e4fa;
 
-  --sidebar: oklch(0.98 0.01 260);
-  --sidebar-border: oklch(0.91 0.01 260);
+  --popover: #0d1c2d;
+  --popover-foreground: #d4e4fa;
+
+  --sidebar: #0d1c2d;
+  --sidebar-foreground: #d4e4fa;
+  --sidebar-border: #1c2b3c;
+  --sidebar-accent: #122131;
+
+  --surface: #051424;
+  --surface-dim: #051424;
+  --surface-container-low: #0d1c2d;
+  --surface-container: #122131;
+  --surface-container-high: #1c2b3c;
+  --surface-container-highest: #273647;
+  --ai-glow: #3B82F6;
+  --sentiment-positive: #10B981;
+  --sentiment-negative: #EF4444;
+  --sentiment-neutral: #eab308;
 }
 
 .dark {
-  /* Dark Mode: Base Background is your Navy #182132 */
-  --background: oklch(0.18 0.02 262);
-  --foreground: oklch(0.98 0.01 262);
+  --background: #051424;
+  --foreground: #d4e4fa;
 
-  /* Cards are slightly lighter than background to pop */
-  --card: oklch(0.248 0.035 262);
-  --card-foreground: oklch(0.98 0.01 262);
+  --primary: #a4c9ff;
+  --primary-foreground: #00315d;
 
-  /* Primary in dark mode: A vibrant blue-tinted white or brand light */
-  --primary: oklch(0.98 0.01 262);
-  --primary-foreground: oklch(0.25 0.04 262);
+  --secondary: #3e495d;
+  --secondary-foreground: #aeb9d0;
 
-  --secondary: oklch(0.28 0.04 262);
-  --secondary-foreground: oklch(0.98 0.01 262);
+  --muted: #122131;
+  --muted-foreground: #aeb9d0;
 
-  --muted: oklch(0.28 0.04 262);
-  --muted-foreground: oklch(0.70 0.02 262);
+  --accent: #1c2b3c;
+  --accent-foreground: #d4e4fa;
 
-  --accent: oklch(0.32 0.04 262);
-  --accent-foreground: oklch(0.98 0.01 262);
+  --destructive: #EF4444;
+  --destructive-foreground: #ffffff;
 
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.98 0.01 262 / 0.3);
+  --border: #1c2b3c;
+  --input: #1c2b3c;
+  --ring: #3B82F6;
 
-  --popover: oklch(0.248 0.035 262);
-  --popover-foreground: oklch(0.98 0.01 262);
+  --card: #0d1c2d;
+  --card-foreground: #d4e4fa;
 
-  --sidebar: oklch(0.22 0.03 262);
+  --popover: #0d1c2d;
+  --popover-foreground: #d4e4fa;
+
+  --sidebar: #0d1c2d;
+  --sidebar-foreground: #d4e4fa;
+  --sidebar-border: #1c2b3c;
+  --sidebar-accent: #122131;
+
+  --surface: #051424;
+  --surface-dim: #051424;
+  --surface-container-low: #0d1c2d;
+  --surface-container: #122131;
+  --surface-container-high: #1c2b3c;
+  --surface-container-highest: #273647;
+  --ai-glow: #3B82F6;
+  --sentiment-positive: #10B981;
+  --sentiment-negative: #EF4444;
+  --sentiment-neutral: #eab308;
 }
 
 @layer base {
