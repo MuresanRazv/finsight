@@ -35,3 +35,4 @@ class AnalyzedArticle(BaseModel):
     entities: List[EntitySentiment] = Field(default_factory=list, description="List of entities mentioned in the text with their sentiment")
     semantic_vector_id: Optional[str] = None
     processed_at: datetime = Field(default_factory=datetime.utcnow, description="ISO-8601 timestamp of processing")
+    requested_by_user_id: Optional[int] = None

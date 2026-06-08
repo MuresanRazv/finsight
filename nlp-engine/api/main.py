@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+from datetime import datetime, timezone
 
 from core.config import settings
 from services.ml_service import ml_service
@@ -163,3 +164,194 @@ async def chat_endpoint(request: ChatRequest):
     except Exception as e:
         logger.error(f"Chat RAG failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+class ProcessRequest(BaseModel):
+    url: str
+    title: Optional[str] = None
+    text: Optional[str] = None
+    source: Optional[str] = None
+    userId: Optional[int] = None
+
+@app.post("/api/process")
+async def process_article(req: ProcessRequest):
+    logger.info(f"Received manual process request for URL: {req.url}")
+    
+    # 1. Scrape if text/title/source is missing
+    title = req.title
+    text = req.text
+    source = req.source
+    
+    if not text or not title:
+        try:
+            import requests
+            from bs4 import BeautifulSoup
+            from urllib.parse import urlparse
+            
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            res = requests.get(req.url, headers=headers, timeout=10)
+            res.raise_for_status()
+            
+            soup = BeautifulSoup(res.content, "html.parser")
+            
+            # extract title
+            if not title:
+                title_tag = soup.find("title")
+                title = title_tag.text.strip() if title_tag else "Manual Article"
+            
+            # extract text
+            if not text:
+                # get all paragraphs
+                paragraphs = soup.find_all("p")
+                text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
+                
+            if not source:
+                domain = urlparse(req.url).netloc
+                source = domain.replace("www.", "")
+                
+            if not text or not text.strip():
+                raise HTTPException(status_code=400, detail="Could not extract text content from the URL. Please provide title and text manually.")
+                
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            logger.error(f"Failed to scrape URL {req.url}: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to scrape URL: {str(e)}")
+            
+    if not source:
+        from urllib.parse import urlparse
+        domain = urlparse(req.url).netloc
+        source = domain.replace("www.", "") or "Manual Ingest"
+
+    # 2. Queue the Celery task
+    payload = {
+        "source": source,
+        "title": title,
+        "text": text,
+        "url": req.url,
+        "published_at": datetime.now(timezone.utc).isoformat(),
+        "requested_by_user_id": req.userId
+    }
+    
+    try:
+        from workers.celery_app import celery_app
+        celery_app.send_task(
+            "workers.tasks.analyze_sentiment",
+            kwargs=payload,
+            queue=settings.QUEUE_RAW_NEWS,
+        )
+        logger.info(f"Published manual processing task for: {req.url}")
+        return {"status": "queued", "url": req.url}
+    except Exception as e:
+        logger.error(f"Failed to queue celery task: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to queue task: {str(e)}")
+
+class BulkProcessRequest(BaseModel):
+    urls: List[str]
+    userId: Optional[int] = None
+
+@app.post("/api/process/bulk")
+async def process_articles_bulk(req: BulkProcessRequest):
+    logger.info(f"Received manual bulk process request for {len(req.urls)} URLs")
+    
+    if not req.urls:
+        raise HTTPException(status_code=400, detail="No URLs provided")
+
+    success_count = 0
+    errors = []
+    
+    from workers.celery_app import celery_app
+    
+    for idx, url in enumerate(req.urls):
+        url_cleaned = url.strip()
+        if not url_cleaned:
+            continue
+            
+        title = None
+        text = None
+        source = None
+        
+        try:
+            import time
+            if idx > 0:
+                time.sleep(1) # Sleep 1 second between scrapes to throttle local system & source web traffic
+                
+            import requests
+            from bs4 import BeautifulSoup
+            from urllib.parse import urlparse
+            
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            res = requests.get(url_cleaned, headers=headers, timeout=10)
+            res.raise_for_status()
+            
+            soup = BeautifulSoup(res.content, "html.parser")
+            
+            # extract title
+            title_tag = soup.find("title")
+            title = title_tag.text.strip() if title_tag else "Manual Article"
+            
+            # extract text
+            paragraphs = soup.find_all("p")
+            text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
+            
+            domain = urlparse(url_cleaned).netloc
+            source = domain.replace("www.", "") or "Manual Ingest"
+            
+            if not text or not text.strip():
+                raise Exception("Could not extract text content from the URL.")
+                
+            payload = {
+                "source": source,
+                "title": title,
+                "text": text,
+                "url": url_cleaned,
+                "published_at": datetime.now(timezone.utc).isoformat(),
+                "requested_by_user_id": req.userId
+            }
+            
+            celery_app.send_task(
+                "workers.tasks.analyze_sentiment",
+                kwargs=payload,
+                queue=settings.QUEUE_RAW_NEWS,
+                countdown=idx * 3 # Stagger NLP/FinBERT task executions by 3s each to prevent laptop crashes
+            )
+            success_count += 1
+            
+        except Exception as e:
+            logger.error(f"Failed to scrape URL {url_cleaned} in bulk process: {e}")
+            errors.append({"url": url_cleaned, "error": str(e)})
+            
+            if req.userId is not None:
+                try:
+                    import pika
+                    from core.rabbitmq import rabbitmq_client
+                    failure_payload = {
+                        "url": url_cleaned,
+                        "requestedByUserId": req.userId,
+                        "errorMessage": f"Scraping failed: {str(e)}"
+                    }
+                    channel = rabbitmq_client.get_channel()
+                    channel.queue_declare(queue="analyzed_sentiment_failed", durable=True)
+                    channel.basic_publish(
+                        exchange='',
+                        routing_key="analyzed_sentiment_failed",
+                        body=json.dumps(failure_payload),
+                        properties=pika.BasicProperties(
+                            content_type='application/json',
+                            delivery_mode=2,
+                        )
+                    )
+                except Exception as pub_ex:
+                    logger.error(f"Failed to publish bulk failure notification for {url_cleaned}: {pub_ex}")
+                    
+    return {
+        "status": "initiated",
+        "processed": success_count,
+        "failed": len(errors),
+        "errors": errors
+    }
+
+

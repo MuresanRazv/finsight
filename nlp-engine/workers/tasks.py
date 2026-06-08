@@ -17,6 +17,7 @@ def analyze_sentiment(**news_item_data):
     """
     Celery task to process raw financial news.
     """
+    requested_by_user_id = news_item_data.pop("requested_by_user_id", None)
     try:
         # Validate input
         news_item = FinancialNewsItem(**news_item_data)
@@ -24,7 +25,43 @@ def analyze_sentiment(**news_item_data):
         # Deduplication
         if redis_service.is_processed(news_item.url):
             logger.info(f"Article already processed: {news_item.url}")
-            return
+            
+            # If a user requested this manually, send a completion notification to core-api
+            if requested_by_user_id is not None:
+                try:
+                    doc = chroma_service.collection.get(ids=[news_item.url])
+                    if doc and doc.get("metadatas") and len(doc["metadatas"]) > 0:
+                        metadata = doc["metadatas"][0]
+                        entities_data = json.loads(metadata.get("entities", "[]"))
+                        entities = [EntitySentiment(**e) for e in entities_data]
+                        
+                        analyzed_article = AnalyzedArticle(
+                            url=news_item.url,
+                            title=metadata.get("title", news_item.title),
+                            overall_sentiment_label=metadata.get("sentiment_label", "neutral"),
+                            overall_sentiment_score=metadata.get("sentiment_score", 0.0),
+                            entities=entities,
+                            processed_at=datetime.now(timezone.utc),
+                            requested_by_user_id=requested_by_user_id
+                        )
+                        
+                        # Push to RabbitMQ
+                        channel = rabbitmq_client.get_channel()
+                        channel.basic_publish(
+                            exchange='',
+                            routing_key=settings.QUEUE_ANALYZED_SENTIMENT,
+                            body=analyzed_article.model_dump_json(),
+                            properties=pika.BasicProperties(
+                                content_type='application/json',
+                                delivery_mode=2,  # make message persistent
+                            )
+                        )
+                        logger.info(f"Successfully republished existing article info for manual request: {news_item.url}")
+                        return
+                except Exception as ex:
+                    logger.warning(f"Failed to retrieve existing processed article from ChromaDB: {ex}. Proceeding to re-process.")
+            else:
+                return
 
         # Extract entities and their sentiment
         entity_sentiments_data = ml_service.extract_entity_sentiments(news_item.text)
@@ -64,7 +101,8 @@ def analyze_sentiment(**news_item_data):
             overall_sentiment_label=overall_sentiment["label"],
             overall_sentiment_score=overall_sentiment["score"],
             entities=entities,
-            processed_at=datetime.now(timezone.utc)
+            processed_at=datetime.now(timezone.utc),
+            requested_by_user_id=requested_by_user_id
         )
         
         # Push to RabbitMQ
@@ -86,4 +124,24 @@ def analyze_sentiment(**news_item_data):
 
     except Exception as e:
         logger.error(f"Error processing news item: {e}")
-        # Ideally, we might want to retry or send to a dead-letter queue
+        if requested_by_user_id is not None:
+            try:
+                failure_payload = {
+                    "url": news_item_data.get("url", "unknown"),
+                    "requestedByUserId": requested_by_user_id,
+                    "errorMessage": str(e)
+                }
+                channel = rabbitmq_client.get_channel()
+                channel.queue_declare(queue="analyzed_sentiment_failed", durable=True)
+                channel.basic_publish(
+                    exchange='',
+                    routing_key="analyzed_sentiment_failed",
+                    body=json.dumps(failure_payload),
+                    properties=pika.BasicProperties(
+                        content_type='application/json',
+                        delivery_mode=2,
+                    )
+                )
+                logger.info(f"Published failure notification for URL: {news_item_data.get('url')}")
+            except Exception as pub_ex:
+                logger.error(f"Failed to publish failure notification: {pub_ex}")

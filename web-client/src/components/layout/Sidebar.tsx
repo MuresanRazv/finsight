@@ -11,6 +11,7 @@ import {
     MessageSquare,
     User,
     Plus,
+    PlusCircle,
 } from 'lucide-react'
 import { SessionUser } from '@/lib/session'
 
@@ -29,6 +30,11 @@ const mainRoutes = [
         label: 'AI Chat',
         icon: MessageSquare,
         href: '/chat',
+    },
+    {
+        label: 'My Ingestions',
+        icon: PlusCircle,
+        href: '/ingestion',
     },
 ]
 

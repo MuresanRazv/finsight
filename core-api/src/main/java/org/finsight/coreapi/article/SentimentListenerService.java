@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ public class SentimentListenerService {
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserArticleProcessingRequestRepository processingRequestRepository;
 
     @RabbitListener(
             queues = "analyzed_sentiment"
@@ -32,41 +34,101 @@ public class SentimentListenerService {
         log.info("Received message for URL: {}", message.url());
 
         try {
+            Article savedArticle = null;
             if (articleRepository.findFirstByUrl(message.url()).isPresent()) {
                 log.info("Article with URL {} already exists. Skipping processing.", message.url());
-                return;
+                savedArticle = articleRepository.findFirstByUrl(message.url()).get();
+            } else {
+                Article article = Article.builder()
+                        .url(message.url())
+                        .processedAt(message.processedAt())
+                        .title(message.title())
+                        .overallSentimentScore(message.overallSentimentScore())
+                        .overallSentimentLabel(message.overallSentimentLabel())
+                        .semanticVectorId(message.semanticVectorId())
+                        .build();
+
+                if (message.entities() != null) {
+                    message.entities().forEach(entityDto -> {
+                        EntitySentiment sentiment = EntitySentiment.builder()
+                                .name(entityDto.name())
+                                .ticker(entityDto.ticker())
+                                .sentimentScore(entityDto.sentimentScore())
+                                .sentimentLabel(entityDto.sentimentLabel())
+                                .build();
+
+                        article.addEntity(sentiment);
+                    });
+                }
+
+                savedArticle = articleRepository.save(article);
+                log.info("Successfully saved article and {} sentiments to TimescaleDB for URL: {}",
+                        savedArticle.getEntities().size(), savedArticle.getUrl());
+
+                broadcastSentimentUpdate(savedArticle, savedArticle.getEntities());
             }
 
-            Article article = Article.builder()
-                    .url(message.url())
-                    .processedAt(message.processedAt())
-                    .title(message.title())
-                    .overallSentimentScore(message.overallSentimentScore())
-                    .overallSentimentLabel(message.overallSentimentLabel())
-                    .semanticVectorId(message.semanticVectorId())
-                    .build();
+            // Update processing requests matching the URL to COMPLETED
+            updateProcessingRequests(message, "COMPLETED", null);
 
-            if (message.entities() != null) {
-                message.entities().forEach(entityDto -> {
-                    EntitySentiment sentiment = EntitySentiment.builder()
-                            .name(entityDto.name())
-                            .ticker(entityDto.ticker())
-                            .sentimentScore(entityDto.sentimentScore())
-                            .sentimentLabel(entityDto.sentimentLabel())
-                            .build();
-
-                    article.addEntity(sentiment);
-                });
-            }
-
-            Article savedArticle = articleRepository.save(article);
-            log.info("Successfully saved article and {} sentiments to TimescaleDB for URL: {}",
-                    savedArticle.getEntities().size(), savedArticle.getUrl());
-
-            broadcastSentimentUpdate(savedArticle, savedArticle.getEntities());
         } catch (Exception e) {
             log.error("Failed to process and save sentiment message for URL: {}. Error: {}",
                     message.url(), e.getMessage(), e);
+            if (message.requestedByUserId() != null) {
+                markRequestAsFailed(message.url(), message.requestedByUserId(), "Failed to save article in DB: " + e.getMessage());
+            }
+        }
+    }
+
+    @RabbitListener(
+            queues = "analyzed_sentiment_failed"
+    )
+    @Transactional
+    public void receiveFailureMessage(final FailedArticleDto message) {
+        log.info("Received failure message for URL: {}, user ID: {}, error: {}", 
+                message.url(), message.requestedByUserId(), message.errorMessage());
+        
+        try {
+            List<UserArticleProcessingRequest> requests = processingRequestRepository.findByUrlAndStatus(message.url(), "PENDING");
+            for (UserArticleProcessingRequest req : requests) {
+                if (message.requestedByUserId() == null || req.getUser().getId().equals(message.requestedByUserId())) {
+                    req.setStatus("FAILED");
+                    req.setCompletedAt(OffsetDateTime.now());
+                    req.setErrorMessage(message.errorMessage());
+                    processingRequestRepository.save(req);
+                    log.info("Updated request ID {} status to FAILED", req.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to update failure status for URL: {}", message.url(), e);
+        }
+    }
+
+    private void updateProcessingRequests(AnalyzedArticleDto message, String status, String errorMessage) {
+        List<UserArticleProcessingRequest> requests = processingRequestRepository.findByUrlAndStatus(message.url(), "PENDING");
+        if (!requests.isEmpty()) {
+            log.info("Found {} pending processing requests for URL: {}", requests.size(), message.url());
+            for (UserArticleProcessingRequest req : requests) {
+                req.setStatus(status);
+                req.setCompletedAt(OffsetDateTime.now());
+                req.setArticleTitle(message.title());
+                req.setArticleSentimentLabel(message.overallSentimentLabel());
+                req.setArticleSentimentScore(message.overallSentimentScore());
+                req.setErrorMessage(errorMessage);
+                processingRequestRepository.save(req);
+            }
+        }
+    }
+
+    private void markRequestAsFailed(String url, Integer userId, String errorMessage) {
+        List<UserArticleProcessingRequest> requests = processingRequestRepository.findByUrlAndStatus(url, "PENDING");
+        for (UserArticleProcessingRequest req : requests) {
+            if (req.getUser().getId().equals(userId)) {
+                req.setStatus("FAILED");
+                req.setCompletedAt(OffsetDateTime.now());
+                req.setErrorMessage(errorMessage);
+                processingRequestRepository.save(req);
+            }
         }
     }
 
@@ -122,7 +184,8 @@ public class SentimentListenerService {
                 article.getOverallSentimentLabel(),
                 sentiments.stream().map(this::toDto).collect(Collectors.toList()),
                 article.getSemanticVectorId(),
-                article.getProcessedAt()
+                article.getProcessedAt(),
+                null
         );
     }
 

@@ -10,6 +10,7 @@ public record AnalyzedArticleDto(
         String overallSentimentLabel,
         List<EntitySentimentDto> entities,
         String semanticVectorId,
-        OffsetDateTime processedAt
+        OffsetDateTime processedAt,
+        Integer requestedByUserId
 ) {
 }

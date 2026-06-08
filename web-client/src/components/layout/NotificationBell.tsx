@@ -44,15 +44,62 @@ export function NotificationBell() {
     }, [fetchInitialNotifications])
 
     useEffect(() => {
-        const handleMessage = (message: NotificationDto) => {
+        const handleMessage = (message: any) => {
+            let notification: NotificationDto
+
+            if (message.id !== undefined) {
+                notification = message as NotificationDto
+            } else {
+                // Map AnalyzedArticleDto from public ticker topic
+                const ticker =
+                    message.entities && message.entities.length > 0
+                        ? message.entities[0].ticker
+                        : 'NEWS'
+
+                // Simple hash function for deterministic unique ID
+                let hash = 0
+                const str = (message.url || '') + '_' + ticker
+                for (let i = 0; i < str.length; i++) {
+                    hash = (hash << 5) - hash + str.charCodeAt(i)
+                    hash |= 0
+                }
+
+                notification = {
+                    id: Math.abs(hash),
+                    ticker: ticker || 'NEWS',
+                    article_url: message.url || '',
+                    article_processed_at:
+                        message.processed_at ||
+                        message.processedAt ||
+                        new Date().toISOString(),
+                    sentiment_score:
+                        message.overall_sentiment_score !== undefined
+                            ? message.overall_sentiment_score
+                            : message.overallSentimentScore || 0,
+                    sentiment_label:
+                        message.overall_sentiment_label ||
+                        message.overallSentimentLabel ||
+                        'neutral',
+                    is_read: false,
+                    created_at: new Date().toISOString(),
+                }
+            }
+
             setNotifications((prev) => {
-                // Deduplicate by ID
-                if (prev.some((n) => n.id === message.id)) {
+                if (
+                    prev.some(
+                        (n) =>
+                            n.id === notification.id ||
+                            (n.article_url === notification.article_url &&
+                                n.ticker === notification.ticker),
+                    )
+                ) {
                     return prev
                 }
-                return [message, ...prev]
+                return [notification, ...prev]
             })
-            if (!message.is_read) {
+
+            if (!notification.is_read) {
                 setUnreadCount((prev) => prev + 1)
             }
         }

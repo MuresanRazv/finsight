@@ -49,7 +49,8 @@ class SentimentListenerServiceTest {
                 "Positive",
                 List.of(new EntitySentimentDto("Apple Inc.", "AAPL", 0.9, "Positive")),
                 "vector-123",
-                OffsetDateTime.now()
+                OffsetDateTime.now(),
+                null
         );
 
         user = User.builder()
