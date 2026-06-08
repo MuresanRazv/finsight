@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = Field('', env='GOOGLE_API_KEY')
     GEMINI_MODEL: str = Field('gemini-2.0-flash-lite-preview-02-05', env='GEMINI_MODEL')
 
+    # NewsAPI
+    NEWS_API_KEY: str = Field('', env='NEWS_API_KEY')
+
     class Config:
         env_file = ".env"
 

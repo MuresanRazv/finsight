@@ -10,6 +10,7 @@ from .wsj import WSJScraper
 from .financial_times import FinancialTimesScraper
 from .seeking_alpha import SeekingAlphaScraper
 from .benzinga import BenzingaScraper
+from .news_api import NewsAPIScraper
 
 # A list of all available scraper classes.
 ALL_SCRAPERS: List[Type[NewsScraper]] = [
@@ -21,5 +22,6 @@ ALL_SCRAPERS: List[Type[NewsScraper]] = [
     WSJScraper,
     FinancialTimesScraper,
     SeekingAlphaScraper,
-    BenzingaScraper
+    BenzingaScraper,
+    NewsAPIScraper
 ]
