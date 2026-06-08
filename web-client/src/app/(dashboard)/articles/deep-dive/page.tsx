@@ -10,7 +10,6 @@ import {
     TrendingUp,
     TrendingDown,
     Zap,
-    Network,
     Activity,
     ArrowRight,
     Globe,
@@ -52,35 +51,11 @@ const defaultArticle = {
         'The new GB200 NVL72 liquid-cooled rack-scale system marks a shift from chip sales to full integrated AI factory infrastructure.',
         'Project GR00T for humanoid robotics expands NVIDIA\'s TAM, signaling long-term diversification beyond data center compute.',
     ],
-    excerpts: [
-        {
-            title: 'ARCHITECTURAL LEAP',
-            sentiment: 'positive',
-            relevance: '98% Relevance',
-            time: 'Just published',
-            text: 'The Blackwell GPU architecture is not merely an incremental update; it represents a fundamental re-engineering of how data moves between compute nodes. With the second-generation Transformer Engine and new 4-bit floating point AI inference capabilities, NVIDIA is effectively doubling down on the specific mathematical operations that power GPT-4 and its successors.',
-        },
-        {
-            title: 'SUPPLY CHAIN LOGISTICS',
-            sentiment: 'neutral',
-            relevance: '84% Relevance',
-            time: '2h ago',
-            text: 'While the demand for Blackwell is expected to be unprecedented, the industry\'s focus remains on Taiwan Semiconductor Manufacturing Company (TSMC) and its CoWoS packaging capacity. Any bottlenecks at the foundry level could temper the immediate revenue impact despite the stellar technical specifications.',
-        },
-        {
-            title: 'ECOSYSTEM LOCK-IN',
-            sentiment: 'positive',
-            relevance: '92% Relevance',
-            time: '4h ago',
-            text: 'NVIDIA\'s software stack—CUDA—remains the formidable moat. By integrating Blackwell so tightly with the new NVLink Switch and InfiniBand networking, Huang is creating a systems-level lock-in that makes it increasingly difficult for hyperscalers to swap in alternative silicon from competitors like AMD or Intel.',
-        },
-    ],
 }
 
 function ArticleDeepDiveContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState<'excerpts' | 'raw' | 'citations'>('excerpts')
     const [watchlistTickers, setWatchlistTickers] = useState<string[]>([])
     const [loadingWatchlist, setLoadingWatchlist] = useState(true)
     const [selectedChartTicker, setSelectedChartTicker] = useState<string>('')
@@ -160,22 +135,6 @@ function ArticleDeepDiveContent() {
                 `This article primarily focuses on structural indicators of ${finalEntities.map((e: any) => e.name).join(', ')}.`,
                 `The sentiment signature is classified as ${sentimentLabel.toUpperCase()} with an index confidence score of ${overallScore}%.`,
                 `Underlying text vectors reveal key strategic positioning within global macroeconomic frameworks.`,
-            ],
-            excerpts: [
-                {
-                    title: 'CORE INSIGHT',
-                    sentiment: sentimentLabel,
-                    relevance: '95% Relevance',
-                    time: 'Extracted',
-                    text: `Analyzing the source vectors, the sentiment surrounding key corporate nodes appears ${sentimentLabel}. Financial institutions are adjusting models to incorporate these signals into long-term target valuations.`,
-                },
-                {
-                    title: 'MACRO OUTLOOK',
-                    sentiment: 'neutral',
-                    relevance: '78% Relevance',
-                    time: 'Extracted',
-                    text: `Broader supply structures and market indexes remain stabilized despite micro fluctuations. The overall baseline remains supportive of existing capital allocation ranges.`,
-                },
             ],
         }
     }
@@ -663,116 +622,32 @@ function ArticleDeepDiveContent() {
                 </div>
             </div>
 
-            {/* Bottom Row: Detailed Tabs */}
-            <div className="bg-surface-container border border-border rounded-xl shadow-md overflow-hidden">
-                {/* Tab buttons */}
-                <div className="flex border-b border-border bg-surface-container-low">
-                    <button 
-                        onClick={() => setActiveTab('excerpts')}
-                        className={`px-6 py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-all cursor-pointer ${
-                            activeTab === 'excerpts'
-                                ? 'border-primary text-primary bg-surface-container'
-                                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-container-high/40'
-                        }`}
-                    >
-                        ARTICLE EXCERPTS
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('raw')}
-                        className={`px-6 py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-all cursor-pointer ${
-                            activeTab === 'raw'
-                                ? 'border-primary text-primary bg-surface-container'
-                                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-container-high/40'
-                        }`}
-                    >
+            {/* Bottom Row: Raw Source Data */}
+            <div className="bg-surface-container border border-border rounded-xl shadow-md overflow-hidden p-6">
+                <div className="space-y-4">
+                    <h3 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">
                         RAW SOURCE DATA
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('citations')}
-                        className={`px-6 py-4 text-xs font-bold tracking-widest uppercase border-b-2 transition-all cursor-pointer ${
-                            activeTab === 'citations'
-                                ? 'border-primary text-primary bg-surface-container'
-                                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-surface-container-high/40'
-                        }`}
-                    >
-                        CITATION MAP
-                    </button>
-                </div>
-
-                {/* Tab panels */}
-                <div className="p-6">
-                    {activeTab === 'excerpts' && (
-                        <div className="space-y-8 max-w-4xl">
-                            {article.excerpts.map((excerpt, index) => {
-                                const excerptPositive = excerpt.sentiment === 'positive'
-                                const excerptNegative = excerpt.sentiment === 'negative'
-                                const borderClass = excerptPositive 
-                                    ? 'bg-sentiment-positive' 
-                                    : excerptNegative 
-                                        ? 'bg-sentiment-negative' 
-                                        : 'bg-sentiment-neutral'
-                                
-                                return (
-                                    <div key={index} className="relative pl-6 group">
-                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${borderClass} rounded-full group-hover:w-1.5 transition-all`}></div>
-                                        
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h4 className={`text-xs font-bold tracking-wider ${
-                                                excerptPositive 
-                                                    ? 'text-sentiment-positive' 
-                                                    : excerptNegative 
-                                                        ? 'text-sentiment-negative' 
-                                                        : 'text-muted-foreground'
-                                            }`}>
-                                                {excerpt.title}
-                                            </h4>
-                                            <span className="text-[10px] text-muted-foreground">• {excerpt.relevance}</span>
-                                            <span className="text-[10px] text-muted-foreground">• {excerpt.time}</span>
-                                        </div>
-
-                                        <p className="text-sm leading-relaxed text-foreground italic bg-surface-container-low/40 p-3 rounded-lg border border-border/40">
-                                            "{excerpt.text}"
-                                        </p>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {activeTab === 'raw' && (
-                        <div className="space-y-4">
-                            <p className="text-xs text-muted-foreground mb-2">Metadata payload extracted from index node</p>
-                            <pre className="p-4 bg-surface-container-low rounded-lg border border-border font-mono text-xs text-primary overflow-x-auto max-h-96">
-                                {JSON.stringify({
-                                    meta: {
-                                        title: article.title,
-                                        url: article.url,
-                                        publisher: article.source,
-                                        processed_timestamp: article.published_at,
-                                        analyst_confidence: article.sentiment_score,
-                                        label: article.sentiment_label
-                                    },
-                                    entities: article.entities.map(e => ({
-                                        symbol: e.ticker,
-                                        name: e.name,
-                                        weight: e.relevance
-                                    })),
-                                    key_themes: article.themes,
-                                    semantic_vector_dimensions: 1536
-                                }, null, 4)}
-                            </pre>
-                        </div>
-                    )}
-
-                    {activeTab === 'citations' && (
-                        <div className="p-6 border border-dashed border-border rounded-lg text-center flex flex-col items-center justify-center min-h-60 bg-surface-container-low/30">
-                            <Network className="h-10 w-10 text-muted-foreground/60 mb-3" />
-                            <h4 className="text-sm font-semibold text-foreground mb-1">Semantic Citation Web</h4>
-                            <p className="text-xs text-muted-foreground max-w-sm">
-                                Nodes representing similar publications referencing {article.entities.map(e => e.ticker).filter(Boolean).join(', ')} within a 14-day window. Interactive graphs require core-api vector index matching.
-                            </p>
-                        </div>
-                    )}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mb-2">Metadata payload extracted from index node</p>
+                    <pre className="p-4 bg-surface-container-low rounded-lg border border-border font-mono text-xs text-primary overflow-x-auto max-h-96">
+                        {JSON.stringify({
+                            meta: {
+                                title: article.title,
+                                url: article.url,
+                                publisher: article.source,
+                                processed_timestamp: article.published_at,
+                                analyst_confidence: article.sentiment_score,
+                                label: article.sentiment_label
+                            },
+                            entities: article.entities.map(e => ({
+                                symbol: e.ticker,
+                                name: e.name,
+                                weight: e.relevance
+                            })),
+                            key_themes: article.themes,
+                            semantic_vector_dimensions: 1536
+                        }, null, 4)}
+                    </pre>
                 </div>
             </div>
         </div>
