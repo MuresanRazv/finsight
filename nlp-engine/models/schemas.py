@@ -30,6 +30,7 @@ class AnalyzedArticle(BaseModel):
     """
     url: str = Field(..., description="URL of the article, used as unique ID")
     title: str = Field(..., description="Title of the article")
+    source: Optional[str] = Field(None, description="Source of the news, e.g., CNBC, Reuters")
     overall_sentiment_score: float = Field(..., ge=-1.0, le=1.0, description="Sentiment score between -1.0 and 1.0")
     overall_sentiment_label: str = Field(..., description="Sentiment label: positive, negative, neutral")
     entities: List[EntitySentiment] = Field(default_factory=list, description="List of entities mentioned in the text with their sentiment")

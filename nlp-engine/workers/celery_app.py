@@ -17,4 +17,5 @@ celery_app.conf.update(
     # Route tasks to the specific queue defined in settings
     task_default_queue=settings.QUEUE_RAW_NEWS,
     task_acks_late=True,  # Ensure tasks aren't lost if the worker crashes during processing
+    broker_heartbeat=0,  # Disable heartbeats to prevent connection resets when executing heavy ML models
 )

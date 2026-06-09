@@ -354,4 +354,65 @@ async def process_articles_bulk(req: BulkProcessRequest):
         "errors": errors
     }
 
+class TestRSSRequest(BaseModel):
+    url: str
+    itemSelector: Optional[str] = None
+    titleSelector: Optional[str] = None
+    linkSelector: Optional[str] = None
+    linkAttribute: Optional[str] = None
+    descriptionSelector: Optional[str] = None
+    pubDateSelector: Optional[str] = None
+    pubDateFormat: Optional[str] = None
+
+@app.post("/api/rss/test")
+async def test_rss_feed(req: TestRSSRequest):
+    logger.info(f"Testing RSS feed configuration for: {req.url}")
+    
+    config = {
+        "name": "Test Feed Sandbox",
+        "url": req.url,
+        "item_selector": req.itemSelector,
+        "title_selector": req.titleSelector,
+        "link_selector": req.linkSelector,
+        "link_attribute": req.linkAttribute,
+        "description_selector": req.descriptionSelector,
+        "pub_date_selector": req.pubDateSelector,
+        "pub_date_format": req.pubDateFormat
+    }
+    
+    try:
+        from ingestor.configurable_scraper import ConfigurableRSSScraper
+        scraper = ConfigurableRSSScraper(config)
+        news_items = scraper.scrape()
+        
+        if not news_items:
+            return {
+                "success": False,
+                "message": "Connected successfully, but failed to parse any news items. Please check if your item, title, or description tags are correct.",
+                "articles": []
+            }
+            
+        preview = []
+        for item in news_items[:3]:
+            preview.append({
+                "title": item.title,
+                "url": item.url,
+                "text": item.text,
+                "publishedAt": item.published_at.isoformat()
+            })
+            
+        return {
+            "success": True,
+            "message": f"Successfully parsed {len(news_items)} news items!",
+            "articles": preview
+        }
+    except Exception as e:
+        logger.error(f"Failed to test RSS feed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Error occurred during fetching or parsing: {str(e)}",
+            "articles": []
+        }
+
+
 

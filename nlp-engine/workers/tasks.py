@@ -38,6 +38,7 @@ def analyze_sentiment(**news_item_data):
                         analyzed_article = AnalyzedArticle(
                             url=news_item.url,
                             title=metadata.get("title", news_item.title),
+                            source=metadata.get("source", news_item.source),
                             overall_sentiment_label=metadata.get("sentiment_label", "neutral"),
                             overall_sentiment_score=metadata.get("sentiment_score", 0.0),
                             entities=entities,
@@ -98,6 +99,7 @@ def analyze_sentiment(**news_item_data):
         analyzed_article = AnalyzedArticle(
             url=news_item.url,
             title=news_item.title,
+            source=news_item.source,
             overall_sentiment_label=overall_sentiment["label"],
             overall_sentiment_score=overall_sentiment["score"],
             entities=entities,

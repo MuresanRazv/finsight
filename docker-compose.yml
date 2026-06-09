@@ -90,7 +90,7 @@ services:
       - backend_network
     env_file:
       - ./nlp-engine/.env
-    command: celery -A workers.celery_app worker --loglevel=info
+    command: celery -A workers.celery_app worker --loglevel=info --concurrency=2
     restart: unless-stopped
     
   # 7. NLP Engine - The Ingestor (Cron Job)
