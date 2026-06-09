@@ -124,6 +124,7 @@ export default function TickerPage({
     >('1M')
     const [chartDataClose, setChartDataClose] = useState<number[]>([])
     const [chartLoading, setChartLoading] = useState(true)
+    const [chartStatus, setChartStatus] = useState<'ok' | 'mocked' | 'no_data'>('ok')
     const [watchlistTickers, setWatchlistTickers] = useState<string[]>([])
     const [loadingWatchlist, setLoadingWatchlist] = useState(true)
     const [relatedNews, setRelatedNews] = useState<TickerRelatedNewsItem[]>([])
@@ -256,6 +257,7 @@ export default function TickerPage({
                         data.close.length > 0
                     ) {
                         setChartDataClose(data.close)
+                        setChartStatus(data.status || 'ok')
                         return
                     }
                 }
@@ -265,6 +267,7 @@ export default function TickerPage({
                 setChartLoading(false)
             }
             setChartDataClose([])
+            setChartStatus('no_data')
         }
         fetchCandles()
     }, [symbol, activeInterval])
@@ -461,6 +464,12 @@ export default function TickerPage({
                                 )}
                             </div>
                             <div className='text-muted-foreground flex items-center gap-4 text-xs font-semibold'>
+                                {chartStatus === 'mocked' && (
+                                    <span className='bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5'>
+                                        <Sparkles className="h-3 w-3" />
+                                        Simulated Data
+                                    </span>
+                                )}
                                 <span className='flex items-center gap-1.5'>
                                     <span className='bg-sentiment-positive h-2.5 w-2.5 rounded-full'></span>
                                     <span>

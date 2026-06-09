@@ -6,6 +6,58 @@ interface CandleResponse {
     status: 'ok' | 'mocked' | 'no_data'
 }
 
+// Simple seedable random number generator
+function seedRandom(seedStr: string) {
+    let hash = 0
+    for (let i = 0; i < seedStr.length; i++) {
+        hash = seedStr.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    return () => {
+        const x = Math.sin(hash++) * 10000
+        return x - Math.floor(x)
+    }
+}
+
+function generateMockCandles(ticker: string, from: number, to: number): CandleResponse {
+    const symbol = ticker.toUpperCase()
+    const rand = seedRandom(`${symbol}-${from}-${to}`)
+
+    // Pick a realistic starting price
+    let basePrice = 150
+    if (symbol === 'NVDA') basePrice = 850
+    else if (symbol === 'TSM') basePrice = 135
+    else if (symbol === 'AMD') basePrice = 170
+    else if (symbol === 'AAPL') basePrice = 185
+    else if (symbol === 'MSFT') basePrice = 415
+    else {
+        // Procedural base price
+        const code = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+        basePrice = 40 + (code % 250)
+    }
+
+    const close: number[] = []
+    const timestamps: number[] = []
+
+    // Create daily points between from and to (step of 1 day = 86400 seconds)
+    const step = 86400
+    let current = from
+    let price = basePrice
+
+    while (current <= to) {
+        const changePercent = (rand() - 0.45) * 0.04 // daily fluctuation
+        price = price * (1 + changePercent)
+        close.push(parseFloat(price.toFixed(2)))
+        timestamps.push(current)
+        current += step
+    }
+
+    return {
+        close,
+        timestamps,
+        status: 'mocked',
+    }
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ ticker: string }> },
@@ -21,11 +73,7 @@ export async function GET(
     const apiKey = process.env.FINNHUB_API_KEY
 
     if (!apiKey) {
-        return NextResponse.json({
-            close: [],
-            timestamps: [],
-            status: 'no_data',
-        })
+        return NextResponse.json(generateMockCandles(symbol, from, to))
     }
 
     try {
@@ -34,15 +82,11 @@ export async function GET(
 
         if (!res.ok) {
             if (res.status === 403 || res.status === 401) {
-                console.warn(`Finnhub API access forbidden/unauthorized for ${symbol}. Please verify your FINNHUB_API_KEY environment variable.`)
+                console.warn(`Finnhub API access forbidden/unauthorized for ${symbol}. Falling back to mock data.`)
             } else {
-                console.error(`Finnhub API request failed for ${symbol} with status ${res.status}: ${res.statusText}`)
+                console.error(`Finnhub API request failed for ${symbol} with status ${res.status}: ${res.statusText}. Falling back to mock data.`)
             }
-            return NextResponse.json({
-                close: [],
-                timestamps: [],
-                status: 'no_data',
-            })
+            return NextResponse.json(generateMockCandles(symbol, from, to))
         }
 
         const data = await res.json()
@@ -56,20 +100,12 @@ export async function GET(
             return NextResponse.json(result)
         } else {
             console.warn(
-                `No candles returned from Finnhub for ${symbol}.`,
+                `No candles returned from Finnhub for ${symbol}, falling back to mock data.`,
             )
-            return NextResponse.json({
-                close: [],
-                timestamps: [],
-                status: 'no_data',
-            })
+            return NextResponse.json(generateMockCandles(symbol, from, to))
         }
     } catch (err) {
-        console.error(`Error fetching candles for ${symbol}:`, err)
-        return NextResponse.json({
-            close: [],
-            timestamps: [],
-            status: 'no_data',
-        })
+        console.error(`Error fetching candles for ${symbol}, falling back to mock data:`, err)
+        return NextResponse.json(generateMockCandles(symbol, from, to))
     }
 }
