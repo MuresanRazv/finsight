@@ -33,7 +33,16 @@ export async function GET(
         const res = await fetch(url, { next: { revalidate: 300 } })
 
         if (!res.ok) {
-            throw new Error(`Finnhub error: ${res.statusText}`)
+            if (res.status === 403 || res.status === 401) {
+                console.warn(`Finnhub API access forbidden/unauthorized for ${symbol}. Please verify your FINNHUB_API_KEY environment variable.`)
+            } else {
+                console.error(`Finnhub API request failed for ${symbol} with status ${res.status}: ${res.statusText}`)
+            }
+            return NextResponse.json({
+                close: [],
+                timestamps: [],
+                status: 'no_data',
+            })
         }
 
         const data = await res.json()

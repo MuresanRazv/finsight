@@ -59,7 +59,25 @@ export async function GET(
         ])
 
         if (!quoteRes.ok || !profileRes.ok) {
-            throw new Error('Failed to fetch from Finnhub')
+            const status = !quoteRes.ok ? quoteRes.status : profileRes.status
+            const statusText = !quoteRes.ok ? quoteRes.statusText : profileRes.statusText
+            if (status === 403 || status === 401) {
+                console.warn(`Finnhub API access forbidden/unauthorized for ${symbol}. Please verify your FINNHUB_API_KEY environment variable.`)
+            } else {
+                console.error(`Finnhub API request failed for ${symbol} with status ${status}: ${statusText}`)
+            }
+            const result: StockData = {
+                ticker: symbol,
+                name: `${symbol} Corp.`,
+                logo: null,
+                industry: 'N/A',
+                exchange: 'N/A',
+                price: null,
+                change: null,
+                changePercent: null,
+                prevClose: null,
+            }
+            return NextResponse.json(result)
         }
 
         const quoteData = await quoteRes.json()
