@@ -20,4 +20,7 @@ public interface ArticleRepository extends JpaRepository<Article, ArticleId> {
     @EntityGraph(attributePaths = {"entities"})
     @org.springframework.data.jpa.repository.Query("SELECT a FROM Article a")
     List<Article> findAllWithEntities();
+
+    @EntityGraph(attributePaths = {"entities"})
+    java.util.Optional<Article> findByUrlAndProcessedAt(String url, OffsetDateTime processedAt);
 }

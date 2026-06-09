@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/articles")
@@ -24,6 +25,8 @@ public class ArticleController {
     private final UserArticleProcessingRequestRepository processingRequestRepository;
     private final UserRepository userRepository;
     private final WebClient.Builder webClientBuilder;
+    private final ArticleRepository articleRepository;
+    private final EntitySentimentRepository entitySentimentRepository;
 
     @Value("${nlp.api.url}")
     private String nlpApiUrl;
@@ -43,6 +46,7 @@ public class ArticleController {
                 .user(user)
                 .url(requestDto.getUrl())
                 .status("PENDING")
+                .source(requestDto.getSource())
                 .createdAt(OffsetDateTime.now())
                 .build();
         UserArticleProcessingRequest savedRequest = processingRequestRepository.save(request);
@@ -84,6 +88,12 @@ public class ArticleController {
 
             savedRequest.setStatus("FAILED");
             savedRequest.setCompletedAt(OffsetDateTime.now());
+            if (isConnectionError(e)) {
+                String friendlyMsg = "The NLP engine is starting up and loading AI models (e.g. FinBERT, NER). Please try again in 1-2 minutes.";
+                savedRequest.setErrorMessage(friendlyMsg);
+                processingRequestRepository.save(savedRequest);
+                return ResponseEntity.status(503).body(friendlyMsg);
+            }
             savedRequest.setErrorMessage(e.getMessage());
             processingRequestRepository.save(savedRequest);
 
@@ -161,12 +171,76 @@ public class ArticleController {
         } catch (Exception e) {
             log.error("Error calling NLP API to bulk process articles: {}", e.getMessage(), e);
 
+            if (isConnectionError(e)) {
+                String friendlyMsg = "The NLP engine is starting up and loading AI models (e.g. FinBERT, NER). Please try again in 1-2 minutes.";
+                failPendingRequests(requestDto.getUrls(), user, friendlyMsg);
+                return ResponseEntity.status(503).body(friendlyMsg);
+            }
+
             failPendingRequests(requestDto.getUrls(), user, e.getMessage());
 
             return ResponseEntity.internalServerError()
                     .body("Error initiating bulk processing: " + e.getMessage());
         }
     }
+
+    @GetMapping("/detail")
+    public ResponseEntity<AnalyzedArticleDto> getArticleDetail(
+            @RequestParam("url") String url,
+            @RequestParam("processed_at") String processedAt
+    ) {
+        log.info("Fetching article detail for URL: {} at {}", url, processedAt);
+        OffsetDateTime processedDateTime = OffsetDateTime.parse(processedAt);
+        Article article = articleRepository.findByUrlAndProcessedAt(url, processedDateTime)
+                .orElseThrow(() -> new RuntimeException("Article not found"));
+
+        List<EntitySentimentDto> entityDtos = article.getEntities().stream()
+                .map(e -> new EntitySentimentDto(
+                        e.getName(),
+                        e.getTicker(),
+                        e.getSentimentScore(),
+                        e.getSentimentLabel()
+                ))
+                .collect(Collectors.toList());
+
+        AnalyzedArticleDto dto = new AnalyzedArticleDto(
+                article.getUrl(),
+                article.getTitle(),
+                article.getSource(),
+                article.getOverallSentimentScore(),
+                article.getOverallSentimentLabel(),
+                entityDtos,
+                article.getSemanticVectorId(),
+                article.getProcessedAt(),
+                null
+        );
+
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/ticker/{ticker}")
+    public ResponseEntity<List<TickerRelatedNewsDto>> getRelatedNews(
+            @PathVariable("ticker") String ticker,
+            @RequestParam(value = "limit", defaultValue = "3") int limit
+    ) {
+        log.info("Fetching related news for ticker: {} with limit: {}", ticker, limit);
+        List<EntitySentiment> sentiments = entitySentimentRepository.findByTickerOrderByProcessedAtDesc(
+                ticker.toUpperCase(),
+                org.springframework.data.domain.PageRequest.of(0, limit)
+        );
+
+        List<TickerRelatedNewsDto> dtos = sentiments.stream().map(s -> new TickerRelatedNewsDto(
+                s.getArticle() != null ? s.getArticle().getTitle() : "Related News Item",
+                s.getArticle() != null ? s.getArticle().getSource() : "FinSight",
+                s.getArticle() != null ? s.getArticle().getUrl() : "",
+                s.getProcessedAt(),
+                s.getSentimentLabel() != null ? s.getSentimentLabel().toLowerCase() : "neutral",
+                s.getSentimentScore()
+        )).collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
+    }
+
 
     private void failPendingRequests(List<String> urls, User user, String error) {
         for (String url : urls) {
@@ -180,5 +254,14 @@ public class ArticleController {
                 }
             }
         }
+    }
+
+    private boolean isConnectionError(Throwable e) {
+        if (e == null) return false;
+        String msg = e.getMessage();
+        if (msg != null && (msg.contains("Connection refused") || msg.contains("finishConnect") || msg.contains("connection refused") || msg.contains("ConnectException"))) {
+            return true;
+        }
+        return isConnectionError(e.getCause());
     }
 }

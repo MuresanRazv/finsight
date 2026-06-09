@@ -43,6 +43,7 @@ public class SentimentListenerService {
                         .url(message.url())
                         .processedAt(message.processedAt())
                         .title(message.title())
+                        .source(message.source())
                         .overallSentimentScore(message.overallSentimentScore())
                         .overallSentimentLabel(message.overallSentimentLabel())
                         .semanticVectorId(message.semanticVectorId())
@@ -180,6 +181,7 @@ public class SentimentListenerService {
         return new AnalyzedArticleDto(
                 article.getUrl(),
                 article.getTitle(),
+                article.getSource(),
                 article.getOverallSentimentScore(),
                 article.getOverallSentimentLabel(),
                 sentiments.stream().map(this::toDto).collect(Collectors.toList()),

@@ -8,6 +8,7 @@ export interface EntitySentiment {
 export interface ArticleDto {
     url: string
     title: string
+    source?: string | null
     overall_sentiment_score: number
     overall_sentiment_label: string
     entities: EntitySentiment[]

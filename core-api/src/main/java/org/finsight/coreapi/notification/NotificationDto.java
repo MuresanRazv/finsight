@@ -1,6 +1,8 @@
 package org.finsight.coreapi.notification;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import org.finsight.coreapi.article.EntitySentimentDto;
 
 public record NotificationDto(
     Integer id,
@@ -10,5 +12,11 @@ public record NotificationDto(
     Double sentimentScore,
     String sentimentLabel,
     Boolean isRead,
-    OffsetDateTime createdAt
+    OffsetDateTime createdAt,
+    String source,
+    String articleTitle,
+    Double articleOverallSentimentScore,
+    String articleOverallSentimentLabel,
+    List<EntitySentimentDto> articleEntities
 ) {}
+

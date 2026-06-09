@@ -6,6 +6,7 @@ import java.util.List;
 public record AnalyzedArticleDto(
         String url,
         String title,
+        String source,
         Double overallSentimentScore,
         String overallSentimentLabel,
         List<EntitySentimentDto> entities,

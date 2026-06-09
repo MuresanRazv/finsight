@@ -28,6 +28,7 @@ public class Article {
     private Double overallSentimentScore;
     private String overallSentimentLabel;
     private String semanticVectorId;
+    private String source;
 
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

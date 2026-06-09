@@ -35,6 +35,7 @@ public class ChartService {
             Map<String, Object> map = new HashMap<>();
             map.put("url", article.getUrl());
             map.put("title", article.getTitle());
+            map.put("source", article.getSource());
             map.put("processed_at", article.getProcessedAt());
             map.put("overall_sentiment_score", article.getOverallSentimentScore());
             map.put("overall_sentiment_label", article.getOverallSentimentLabel());

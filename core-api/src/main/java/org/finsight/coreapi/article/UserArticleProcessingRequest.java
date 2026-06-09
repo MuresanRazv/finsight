@@ -47,4 +47,7 @@ public class UserArticleProcessingRequest {
 
     @Column(name = "error_message")
     private String errorMessage;
+
+    @Column(name = "source")
+    private String source;
 }

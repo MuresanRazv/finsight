@@ -45,6 +45,7 @@ class SentimentListenerServiceTest {
         analyzedArticleDto = new AnalyzedArticleDto(
                 "http://example.com",
                 "Test Article",
+                "Test Source",
                 0.8,
                 "Positive",
                 List.of(new EntitySentimentDto("Apple Inc.", "AAPL", 0.9, "Positive")),

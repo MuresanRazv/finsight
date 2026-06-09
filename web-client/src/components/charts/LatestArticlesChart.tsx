@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChartSkeleton } from './ChartSkeleton'
 import { TickerBadge } from '@/components/ui/ticker-badge'
 import Link from 'next/link'
+import { cleanArticleTitle } from '@/lib/utils'
 
 export function LatestArticlesChart() {
     const [data, setData] = useState<ChartDataResponse | null>(null)
@@ -84,137 +85,174 @@ export function LatestArticlesChart() {
                 ) : (
                     <ScrollArea className='h-full'>
                         <div className='divide-border divide-y'>
-                            {chartData.map((article, idx) => (
-                                <div
-                                    key={idx}
-                                    className='hover:bg-muted/50 flex flex-col gap-2 p-4 transition-colors'
-                                >
-                                    <div className='flex items-start justify-between gap-4'>
-                                        <Link
-                                            href={{
-                                                pathname: '/articles/deep-dive',
-                                                query: {
-                                                    title: article.title,
-                                                    url: article.url,
-                                                    source: 'Global Feed',
-                                                    published_at: article.processed_at,
-                                                    sentiment_label: article.overall_sentiment_label,
-                                                    sentiment_score: article.overall_sentiment_score,
-                                                    entities: JSON.stringify(article.entities),
+                            {chartData.map((article, idx) => {
+                                const cleanedTitle = cleanArticleTitle(
+                                    article.title,
+                                    article.source,
+                                    article.url,
+                                )
+
+                                return (
+                                    <div
+                                        key={idx}
+                                        className='hover:bg-muted/50 flex flex-col gap-2 p-4 transition-colors'
+                                    >
+                                        <div className='flex items-start justify-between gap-4'>
+                                            <Link
+                                                href={{
+                                                    pathname:
+                                                        '/articles/deep-dive',
+                                                    query: {
+                                                        url: article.url,
+                                                        processed_at:
+                                                            article.processed_at,
+                                                    },
+                                                }}
+                                                className='hover:text-primary cursor-pointer text-sm leading-tight font-medium transition-colors'
+                                                title={article.url}
+                                            >
+                                                <span className='capitalize'>
+                                                    {cleanedTitle}
+                                                </span>
+                                            </Link>
+                                            <Badge
+                                                variant='outline'
+                                                className={getSentimentColor(
+                                                    article.overall_sentiment_label,
+                                                )}
+                                                style={
+                                                    article.overall_sentiment_label?.toLowerCase() !==
+                                                        'positive' &&
+                                                    article.overall_sentiment_label?.toLowerCase() !==
+                                                        'negative'
+                                                        ? {
+                                                              backgroundColor:
+                                                                  'rgba(234, 179, 8, 0.1)',
+                                                              color: '#eab308',
+                                                              borderColor:
+                                                                  'rgba(234, 179, 8, 0.2)',
+                                                          }
+                                                        : undefined
                                                 }
-                                            }}
-                                            className='text-sm leading-tight font-medium hover:text-primary transition-colors cursor-pointer'
-                                            title={article.url}
-                                        >
-                                            <span className='capitalize'>
-                                                {article.title}
-                                            </span>
-                                        </Link>
-                                        <Badge
-                                            variant='outline'
-                                            className={getSentimentColor(
-                                                article.overall_sentiment_label,
-                                            )}
-                                            style={
-                                                article.overall_sentiment_label?.toLowerCase() !== 'positive' &&
-                                                article.overall_sentiment_label?.toLowerCase() !== 'negative'
-                                                    ? {
-                                                          backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                                                          color: '#eab308',
-                                                          borderColor: 'rgba(234, 179, 8, 0.2)',
-                                                      }
-                                                    : undefined
-                                            }
-                                        >
-                                            {article.overall_sentiment_label}
-                                        </Badge>
-                                    </div>
-
-                                    <div className='text-muted-foreground flex items-center justify-between text-xs'>
-                                        <span className='font-mono'>
-                                            {article.formattedDate}
-                                        </span>
-
-                                        <div className='flex items-center gap-2'>
-                                            <span>Confidence</span>
-                                            <div className='bg-secondary h-2 w-24 overflow-hidden rounded-full'>
-                                                <div
-                                                    className='bg-primary/60 h-full transition-all duration-500'
-                                                    style={{
-                                                        width: `${Math.max(0, Math.min(100, article.overall_sentiment_score * 100))}%`,
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className='w-8 text-right'>
-                                                {(
-                                                    article.overall_sentiment_score *
-                                                    100
-                                                ).toFixed(0)}
-                                                %
-                                            </span>
+                                            >
+                                                {
+                                                    article.overall_sentiment_label
+                                                }
+                                            </Badge>
                                         </div>
-                                    </div>
 
-                                    {article.entities &&
-                                        article.entities.length > 0 && (
-                                            <div className='mt-1 flex flex-wrap gap-1'>
-                                                {article.entities
-                                                    .slice(0, 3)
-                                                    .filter(
-                                                        (e) =>
-                                                            !!e.ticker ||
-                                                            !!e.name,
-                                                    )
-                                                    .map((entity, eIdx) => {
-                                                        const displayName =
-                                                            entity.ticker &&
-                                                            entity.ticker
-                                                                .length > 0
-                                                                ? entity.ticker
-                                                                : entity.name
+                                        <div className='text-muted-foreground flex items-center justify-between text-xs'>
+                                            <div className='flex items-center gap-2'>
+                                                <span className='font-mono'>
+                                                    {article.formattedDate}
+                                                </span>
+                                                {article.source && (
+                                                    <span className='text-primary bg-primary/10 border-primary/20 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium'>
+                                                        {article.source}
+                                                    </span>
+                                                )}
+                                            </div>
 
-                                                        if (
-                                                            entity.ticker &&
-                                                            entity.ticker
-                                                                .length > 0
-                                                        ) {
+                                            <div className='flex items-center gap-2'>
+                                                <span>Confidence</span>
+                                                <div className='bg-secondary h-2 w-24 overflow-hidden rounded-full'>
+                                                    <div
+                                                        className='bg-primary/60 h-full transition-all duration-500'
+                                                        style={{
+                                                            width: `${Math.max(0, Math.min(100, article.overall_sentiment_score * 100))}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className='w-8 text-right'>
+                                                    {(
+                                                        article.overall_sentiment_score *
+                                                        100
+                                                    ).toFixed(0)}
+                                                    %
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {article.entities &&
+                                            article.entities.length > 0 && (
+                                                <div className='mt-1 flex flex-wrap gap-1'>
+                                                    {article.entities
+                                                        .slice(0, 3)
+                                                        .filter(
+                                                            (e) =>
+                                                                !!e.ticker ||
+                                                                !!e.name,
+                                                        )
+                                                        .map((entity, eIdx) => {
+                                                            const displayName =
+                                                                entity.ticker &&
+                                                                entity.ticker
+                                                                    .length > 0
+                                                                    ? entity.ticker
+                                                                    : entity.name
+
+                                                            if (
+                                                                entity.ticker &&
+                                                                entity.ticker
+                                                                    .length > 0
+                                                            ) {
+                                                                return (
+                                                                    <TickerBadge
+                                                                        key={
+                                                                            eIdx
+                                                                        }
+                                                                        ticker={
+                                                                            entity.ticker
+                                                                        }
+                                                                        className='bg-secondary text-secondary-foreground flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]'
+                                                                    >
+                                                                        <span>
+                                                                            {
+                                                                                displayName
+                                                                            }
+                                                                        </span>
+                                                                        {article.source && (
+                                                                            <>
+                                                                                <span className='opacity-40'>
+                                                                                    •
+                                                                                </span>
+                                                                                <span className='font-medium opacity-80'>
+                                                                                    {
+                                                                                        article.source
+                                                                                    }
+                                                                                </span>
+                                                                            </>
+                                                                        )}
+                                                                    </TickerBadge>
+                                                                )
+                                                            }
+
                                                             return (
-                                                                <TickerBadge
+                                                                <span
                                                                     key={eIdx}
-                                                                    ticker={
-                                                                        entity.ticker
-                                                                    }
                                                                     className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
                                                                 >
                                                                     {
                                                                         displayName
                                                                     }
-                                                                </TickerBadge>
+                                                                </span>
                                                             )
-                                                        }
-
-                                                        return (
-                                                            <span
-                                                                key={eIdx}
-                                                                className='bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px]'
-                                                            >
-                                                                {displayName}
-                                                            </span>
-                                                        )
-                                                    })}
-                                                {article.entities.length >
-                                                    3 && (
-                                                    <span className='text-muted-foreground px-1 py-0.5 text-[10px]'>
-                                                        +
-                                                        {article.entities
-                                                            .length - 3}{' '}
-                                                        more
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                </div>
-                            ))}
+                                                        })}
+                                                    {article.entities.length >
+                                                        3 && (
+                                                        <span className='text-muted-foreground px-1 py-0.5 text-[10px]'>
+                                                            +
+                                                            {article.entities
+                                                                .length -
+                                                                3}{' '}
+                                                            more
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     </ScrollArea>
                 )}

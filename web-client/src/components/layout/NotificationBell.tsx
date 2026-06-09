@@ -31,8 +31,15 @@ export function NotificationBell() {
         try {
             const data = await getNotifications()
             if (data && Array.isArray(data)) {
-                setNotifications(data)
-                setUnreadCount(data.filter((n) => !n.is_read).length)
+                const normalized = data.map((n: any) => ({
+                    ...n,
+                    article_title: n.article_title || n.articleTitle || null,
+                    article_overall_sentiment_score: n.article_overall_sentiment_score !== undefined ? n.article_overall_sentiment_score : n.articleOverallSentimentScore,
+                    article_overall_sentiment_label: n.article_overall_sentiment_label || n.articleOverallSentimentLabel || null,
+                    article_entities: n.article_entities || n.articleEntities || null,
+                }))
+                setNotifications(normalized)
+                setUnreadCount(normalized.filter((n) => !n.is_read).length)
             }
         } catch (error) {
             console.error('Failed to fetch initial notifications', error)
@@ -48,13 +55,20 @@ export function NotificationBell() {
             let notification: NotificationDto
 
             if (message.id !== undefined) {
-                notification = message as NotificationDto
+                notification = {
+                    ...(message as NotificationDto),
+                    article_title: message.article_title || message.articleTitle || null,
+                    article_overall_sentiment_score: message.article_overall_sentiment_score !== undefined ? message.article_overall_sentiment_score : message.articleOverallSentimentScore,
+                    article_overall_sentiment_label: message.article_overall_sentiment_label || message.articleOverallSentimentLabel || null,
+                    article_entities: message.article_entities || message.articleEntities || null,
+                }
             } else {
                 // Map AnalyzedArticleDto from public ticker topic
-                const ticker =
-                    message.entities && message.entities.length > 0
-                        ? message.entities[0].ticker
-                        : 'NEWS'
+                const entityWithTicker =
+                    message.entities && Array.isArray(message.entities)
+                        ? message.entities.find((e: any) => !!e.ticker)
+                        : null
+                const ticker = entityWithTicker ? entityWithTicker.ticker : 'NEWS'
 
                 // Simple hash function for deterministic unique ID
                 let hash = 0
@@ -73,15 +87,30 @@ export function NotificationBell() {
                         message.processedAt ||
                         new Date().toISOString(),
                     sentiment_score:
+                        entityWithTicker
+                            ? (entityWithTicker.sentiment_score !== undefined
+                                ? entityWithTicker.sentiment_score
+                                : entityWithTicker.sentimentScore || 0)
+                            : 0,
+                    sentiment_label:
+                        entityWithTicker
+                            ? (entityWithTicker.sentiment_label ||
+                                entityWithTicker.sentimentLabel ||
+                                'neutral')
+                            : 'neutral',
+                    is_read: false,
+                    created_at: new Date().toISOString(),
+                    source: message.source || null,
+                    article_title: message.title || null,
+                    article_overall_sentiment_score:
                         message.overall_sentiment_score !== undefined
                             ? message.overall_sentiment_score
                             : message.overallSentimentScore || 0,
-                    sentiment_label:
+                    article_overall_sentiment_label:
                         message.overall_sentiment_label ||
                         message.overallSentimentLabel ||
                         'neutral',
-                    is_read: false,
-                    created_at: new Date().toISOString(),
+                    article_entities: message.entities || null,
                 }
             }
 
@@ -248,12 +277,31 @@ export function NotificationBell() {
                                         <div className='flex items-center gap-2'>
                                             <Badge
                                                 variant='outline'
-                                                className='h-5 border-blue-500/50 bg-blue-500/10 px-1 text-[10px] font-bold text-blue-400'
+                                                className='flex h-5 min-w-0 items-center gap-1 border-blue-500/50 bg-blue-500/10 px-1.5 text-[10px] font-bold text-blue-400'
                                             >
-                                                {notification.ticker}
+                                                <span className='shrink-0'>
+                                                    {notification.ticker}
+                                                </span>
+                                                {notification.source && (
+                                                    <>
+                                                        <span className='shrink-0 opacity-40'>
+                                                            •
+                                                        </span>
+                                                        <span
+                                                            className='max-w-[100px] truncate font-medium opacity-90'
+                                                            title={
+                                                                notification.source
+                                                            }
+                                                        >
+                                                            {
+                                                                notification.source
+                                                            }
+                                                        </span>
+                                                    </>
+                                                )}
                                             </Badge>
                                             <span
-                                                className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wider uppercase ${
                                                     (notification.sentiment_label ||
                                                         '') === 'positive'
                                                         ? 'bg-green-500/20 text-green-400'
@@ -268,24 +316,23 @@ export function NotificationBell() {
                                                     'neutral'}
                                             </span>
                                         </div>
-                                        <span className='text-[10px] text-slate-500'>
-                                            {formatNotificationDate(
-                                                notification.created_at,
-                                            )}
-                                        </span>
                                     </div>
-                                    <div className='relative z-20 mt-1'>
-                                        <p className='truncate text-sm leading-none font-medium'>
+                                    {notification.article_title && (
+                                        <p className='text-slate-300 mt-1 line-clamp-2 text-xs font-medium'>
+                                            {notification.article_title}
+                                        </p>
+                                    )}
+                                    <div className='relative z-20 mt-2 flex items-center justify-between gap-4'>
+                                        <p className='truncate text-xs font-semibold'>
                                             <Link
-                                                href={`/articles/deep-dive?${new URLSearchParams({
-                                                    title: `${notification.ticker} Analysis Report`,
-                                                    url: notification.article_url,
-                                                    source: 'FinSight Feed',
-                                                    published_at: notification.article_processed_at || notification.created_at,
-                                                    sentiment_score: String(notification.sentiment_score),
-                                                    sentiment_label: notification.sentiment_label,
-                                                    entities: JSON.stringify([{ ticker: notification.ticker }])
-                                                }).toString()}`}
+                                                href={`/articles/deep-dive?${new URLSearchParams(
+                                                    {
+                                                        url: notification.article_url,
+                                                        processed_at:
+                                                            notification.article_processed_at ||
+                                                            notification.created_at,
+                                                    },
+                                                ).toString()}`}
                                                 onClick={() => setIsOpen(false)}
                                                 className='inline-flex items-center gap-1 text-blue-400 hover:underline'
                                             >
@@ -293,6 +340,11 @@ export function NotificationBell() {
                                                 <ArrowRight className='h-3 w-3 opacity-50' />
                                             </Link>
                                         </p>
+                                        <span className='shrink-0 text-[10px] font-medium text-slate-500'>
+                                            {formatNotificationDate(
+                                                notification.created_at,
+                                            )}
+                                        </span>
                                     </div>
                                 </div>
                             ))}

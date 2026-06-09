@@ -4,6 +4,7 @@ import org.finsight.coreapi.notification.Notification;
 import org.finsight.coreapi.user.User;
 import org.finsight.coreapi.notification.NotificationDto;
 import org.finsight.coreapi.notification.NotificationRepository;
+import org.finsight.coreapi.article.EntitySentimentDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,7 +60,19 @@ public class NotificationService {
                 notification.getSentimentScore(),
                 notification.getSentimentLabel(),
                 notification.getIsRead(),
-                notification.getCreatedAt()
+                notification.getCreatedAt(),
+                notification.getArticle() != null ? notification.getArticle().getSource() : null,
+                notification.getArticle() != null ? notification.getArticle().getTitle() : null,
+                notification.getArticle() != null ? notification.getArticle().getOverallSentimentScore() : null,
+                notification.getArticle() != null ? notification.getArticle().getOverallSentimentLabel() : null,
+                notification.getArticle() != null ? notification.getArticle().getEntities().stream()
+                        .map(e -> new EntitySentimentDto(
+                                e.getName(),
+                                e.getTicker(),
+                                e.getSentimentScore(),
+                                e.getSentimentLabel()
+                        ))
+                        .collect(Collectors.toList()) : List.of()
         );
     }
 }

@@ -26,15 +26,32 @@ public class SearchController {
         
         WebClient webClient = webClientBuilder.baseUrl(nlpApiUrl).build();
         
-        String responseBody = webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/search")
-                        .queryParam("query", query.getQuery())
-                        .build())
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-                
-        return ResponseEntity.ok(responseBody);
+        try {
+            String responseBody = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/search")
+                            .queryParam("query", query.getQuery())
+                            .build())
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+                    
+            return ResponseEntity.ok(responseBody);
+        } catch (Exception e) {
+            log.error("Failed to execute semantic search: {}", e.getMessage(), e);
+            if (isConnectionError(e)) {
+                return ResponseEntity.status(503).body("{\"success\": false, \"message\": \"The NLP engine is starting up and loading AI models (e.g. LLM, FinBERT). Please try again in 1-2 minutes.\"}");
+            }
+            return ResponseEntity.internalServerError().body("{\"success\": false, \"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    private boolean isConnectionError(Throwable e) {
+        if (e == null) return false;
+        String msg = e.getMessage();
+        if (msg != null && (msg.contains("Connection refused") || msg.contains("finishConnect") || msg.contains("connection refused") || msg.contains("ConnectException"))) {
+            return true;
+        }
+        return isConnectionError(e.getCause());
     }
 }

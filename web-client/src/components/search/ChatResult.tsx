@@ -4,6 +4,7 @@ import { ChatResponse, ArticleStats } from '@/lib/types/chat'
 import { ExternalLink, Brain } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { TickerBadge } from '@/components/ui/ticker-badge'
+import { cleanArticleTitle } from '@/lib/utils'
 
 interface ChatResultProps {
     result: ChatResponse
@@ -49,59 +50,82 @@ export function ChatResult({ result }: ChatResultProps) {
 }
 
 function SourceCard({ source }: { source: ArticleStats }) {
-    let sentimentBadgeClasses = 'bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20'
+    let sentimentBadgeClasses =
+        'bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20'
 
     if (source.overall_sentiment_label === 'positive') {
-        sentimentBadgeClasses = 'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/20'
+        sentimentBadgeClasses =
+            'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/20'
     } else if (source.overall_sentiment_label === 'negative') {
-        sentimentBadgeClasses = 'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/20'
+        sentimentBadgeClasses =
+            'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/20'
     }
 
     const domain = new URL(source.url).hostname.replace('www.', '')
+    const displayName = source.source || domain
 
     return (
-        <div className='bg-card border-border hover:border-muted-foreground/50 flex h-32 flex-col justify-between rounded-xl border p-4 transition-colors'>
-            <div className='flex items-start justify-between'>
-                <div className='flex items-center gap-2'>
-                    <div className='bg-secondary text-secondary-foreground flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded text-[10px] font-bold uppercase'>
-                        {domain.substring(0, 2)}
+        <div className='bg-card border-border hover:border-muted-foreground/50 flex min-h-[140px] flex-col justify-between rounded-xl border p-4 transition-colors'>
+            <div className='space-y-2'>
+                <div className='flex items-start justify-between gap-3'>
+                    <div className='flex min-w-0 items-center gap-2'>
+                        <div className='bg-secondary text-secondary-foreground flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded text-[10px] font-bold uppercase'>
+                            {displayName.substring(0, 2)}
+                        </div>
+                        <a
+                            href={source.url}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-muted-foreground hover:text-foreground flex min-w-0 items-center gap-1 text-sm font-semibold'
+                            title={source.url}
+                        >
+                            <span className='max-w-[120px] truncate'>
+                                {displayName}
+                            </span>
+                            <ExternalLink className='h-3 w-3 shrink-0 opacity-50' />
+                        </a>
                     </div>
-                    <a
-                        href={source.url}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='text-muted-foreground hover:text-foreground flex items-center gap-1 truncate text-sm font-medium'
-                        title={domain}
+                    <span
+                        className={`shrink-0 rounded px-2 py-1 text-[10px] font-semibold tracking-wider uppercase ${sentimentBadgeClasses}`}
+                        style={
+                            source.overall_sentiment_label?.toLowerCase() !==
+                                'positive' &&
+                            source.overall_sentiment_label?.toLowerCase() !==
+                                'negative'
+                                ? {
+                                      backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                                      color: '#eab308',
+                                      borderColor: 'rgba(234, 179, 8, 0.2)',
+                                  }
+                                : undefined
+                        }
                     >
-                        <span className='max-w-[120px] truncate'>{domain}</span>
-                        <ExternalLink className='h-3 w-3 shrink-0 opacity-50' />
-                    </a>
+                        {source.overall_sentiment_label}
+                    </span>
                 </div>
-                <span
-                    className={`rounded px-2 py-1 text-xs font-medium capitalize ${sentimentBadgeClasses}`}
-                    style={
-                        source.overall_sentiment_label?.toLowerCase() !== 'positive' &&
-                        source.overall_sentiment_label?.toLowerCase() !== 'negative'
-                            ? {
-                                  backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                                  color: '#eab308',
-                                  borderColor: 'rgba(234, 179, 8, 0.2)',
-                              }
-                            : undefined
-                    }
-                >
-                    {source.overall_sentiment_label}
-                </span>
+
+                {source.title && (
+                    <div className='text-foreground/90 line-clamp-2 text-xs leading-snug font-semibold'>
+                        {cleanArticleTitle(
+                            source.title,
+                            source.source,
+                            source.url,
+                        )}
+                    </div>
+                )}
             </div>
 
             {source.entities && source.entities.length > 0 && (
                 <div className='scrollbar-hide mt-4 flex gap-2 overflow-x-auto pb-1 text-xs font-medium'>
                     {source.entities.slice(0, 3).map((entity, i) => {
-                        let eClasses = 'bg-[#eab308]/15 text-[#eab308] border border-[#eab308]/20'
+                        let eClasses =
+                            'bg-[#eab308]/15 text-[#eab308] border border-[#eab308]/20'
                         if (entity.sentiment_label === 'positive')
-                            eClasses = 'bg-sentiment-positive/15 text-sentiment-positive border border-sentiment-positive/20'
+                            eClasses =
+                                'bg-sentiment-positive/15 text-sentiment-positive border border-sentiment-positive/20'
                         if (entity.sentiment_label === 'negative')
-                            eClasses = 'bg-sentiment-negative/15 text-sentiment-negative border border-sentiment-negative/20'
+                            eClasses =
+                                'bg-sentiment-negative/15 text-sentiment-negative border border-sentiment-negative/20'
 
                         const displayName = entity.ticker || entity.name
                         const content = (
@@ -133,12 +157,16 @@ function SourceCard({ source }: { source: ArticleStats }) {
                                     ticker={entity.ticker}
                                     className={`shrink-0 rounded px-2 py-1 whitespace-nowrap ${eClasses}`}
                                     style={
-                                        entity.sentiment_label?.toLowerCase() !== 'positive' &&
-                                        entity.sentiment_label?.toLowerCase() !== 'negative'
+                                        entity.sentiment_label?.toLowerCase() !==
+                                            'positive' &&
+                                        entity.sentiment_label?.toLowerCase() !==
+                                            'negative'
                                             ? {
-                                                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                                  backgroundColor:
+                                                      'rgba(234, 179, 8, 0.15)',
                                                   color: '#eab308',
-                                                  borderColor: 'rgba(234, 179, 8, 0.2)',
+                                                  borderColor:
+                                                      'rgba(234, 179, 8, 0.2)',
                                               }
                                             : undefined
                                     }
@@ -153,12 +181,16 @@ function SourceCard({ source }: { source: ArticleStats }) {
                                 key={i}
                                 className={`shrink-0 rounded px-2 py-1 whitespace-nowrap ${eClasses}`}
                                 style={
-                                    entity.sentiment_label?.toLowerCase() !== 'positive' &&
-                                    entity.sentiment_label?.toLowerCase() !== 'negative'
+                                    entity.sentiment_label?.toLowerCase() !==
+                                        'positive' &&
+                                    entity.sentiment_label?.toLowerCase() !==
+                                        'negative'
                                         ? {
-                                              backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                                              backgroundColor:
+                                                  'rgba(234, 179, 8, 0.15)',
                                               color: '#eab308',
-                                              borderColor: 'rgba(234, 179, 8, 0.2)',
+                                              borderColor:
+                                                  'rgba(234, 179, 8, 0.2)',
                                           }
                                         : undefined
                                 }

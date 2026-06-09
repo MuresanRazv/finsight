@@ -4,6 +4,7 @@ import { SearchResultItem } from '@/lib/types/search'
 import { ExternalLink } from 'lucide-react'
 import { TickerBadge } from '@/components/ui/ticker-badge'
 import Link from 'next/link'
+import { cleanArticleTitle } from '@/lib/utils'
 
 interface SearchResultProps {
     results: SearchResultItem[]
@@ -24,32 +25,38 @@ export function SearchResult({ results }: SearchResultProps) {
 }
 
 function SearchResultCard({ result }: { result: SearchResultItem }) {
-    let sentimentClasses = 'bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20'
+    let sentimentClasses =
+        'bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20'
 
     if (result.sentiment_label === 'positive') {
-        sentimentClasses = 'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/20'
+        sentimentClasses =
+            'bg-sentiment-positive/10 text-sentiment-positive border border-sentiment-positive/20'
     } else if (result.sentiment_label === 'negative') {
-        sentimentClasses = 'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/20'
+        sentimentClasses =
+            'bg-sentiment-negative/10 text-sentiment-negative border border-sentiment-negative/20'
     }
+
+    const cleanedTitle = cleanArticleTitle(
+        result.title,
+        result.source,
+        result.url,
+    )
 
     return (
         <div className='bg-card border-border hover:border-muted-foreground/50 flex flex-col justify-between gap-4 rounded-xl border p-5 transition-colors sm:flex-row'>
             <div className='flex-1 space-y-3'>
                 <div className='flex items-start gap-2'>
-                    <h3 className='text-foreground text-xl leading-tight font-semibold hover:text-primary transition-colors cursor-pointer'>
-                        <Link href={{
-                            pathname: '/articles/deep-dive',
-                            query: {
-                                title: result.title,
-                                url: result.url,
-                                source: result.source,
-                                published_at: result.published_at,
-                                sentiment_label: result.sentiment_label,
-                                sentiment_score: result.sentiment_score,
-                                entities: JSON.stringify(result.entities),
-                            }
-                        }}>
-                            {result.title}
+                    <h3 className='text-foreground hover:text-primary cursor-pointer text-xl leading-tight font-semibold transition-colors'>
+                        <Link
+                            href={{
+                                pathname: '/articles/deep-dive',
+                                query: {
+                                    url: result.url,
+                                    processed_at: result.published_at,
+                                },
+                            }}
+                        >
+                            {cleanedTitle}
                         </Link>
                     </h3>
                     <a
