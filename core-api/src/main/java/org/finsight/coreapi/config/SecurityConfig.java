@@ -45,7 +45,8 @@ public class SecurityConfig {
                                         "/api/docs-spec/swagger-config/**",
                                         "/api/swagger-ui/**",
                                         "/api/charts/latest-articles",
-                                        "/api/charts/popular-tickers"
+                                        "/api/charts/popular-tickers",
+                                        "/api/rss-sources/active"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

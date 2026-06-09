@@ -8,12 +8,13 @@ export type IngestionRequestItem = {
     id: number
     url: string
     status: 'PENDING' | 'COMPLETED' | 'FAILED'
-    createdAt: string
-    completedAt: string | null
-    articleTitle: string | null
-    articleSentimentLabel: string | null
-    articleSentimentScore: number | null
-    errorMessage: string | null
+    created_at: string
+    completed_at: string | null
+    article_title: string | null
+    article_sentiment_label: string | null
+    article_sentiment_score: number | null
+    error_message: string | null
+    source: string | null
 }
 
 export type IngestResponse = {
@@ -65,7 +66,8 @@ export async function ingestArticle(data: {
             const errorText = await response.text()
             return {
                 success: false,
-                message: errorText || 'Failed to submit article for processing.',
+                message:
+                    errorText || 'Failed to submit article for processing.',
             }
         }
 
@@ -80,7 +82,10 @@ export async function ingestArticle(data: {
     }
 }
 
-export async function getMyIngestions(page = 0, size = 10): Promise<GetIngestionsResponse> {
+export async function getMyIngestions(
+    page = 0,
+    size = 10,
+): Promise<GetIngestionsResponse> {
     try {
         const session = await getSession()
 
@@ -88,20 +93,24 @@ export async function getMyIngestions(page = 0, size = 10): Promise<GetIngestion
             return { success: false, message: 'Unauthorized' }
         }
 
-        const response = await fetch(`${API_URL}/articles/my-processing?page=${page}&size=${size}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.token}`,
+        const response = await fetch(
+            `${API_URL}/articles/my-processing?page=${page}&size=${size}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.token}`,
+                },
+                cache: 'no-store',
             },
-            cache: 'no-store',
-        })
+        )
 
         if (!response.ok) {
             return { success: false, message: 'Failed to retrieve ingestions.' }
         }
 
-        const result: PaginatedResponse<IngestionRequestItem> = await response.json()
+        const result: PaginatedResponse<IngestionRequestItem> =
+            await response.json()
         return { success: true, data: result }
     } catch (error) {
         console.error('Get my ingestions error:', error)
@@ -112,7 +121,9 @@ export async function getMyIngestions(page = 0, size = 10): Promise<GetIngestion
     }
 }
 
-export async function bulkIngestArticles(urls: string[]): Promise<IngestResponse> {
+export async function bulkIngestArticles(
+    urls: string[],
+): Promise<IngestResponse> {
     try {
         const session = await getSession()
 
@@ -133,7 +144,9 @@ export async function bulkIngestArticles(urls: string[]): Promise<IngestResponse
             const errorText = await response.text()
             return {
                 success: false,
-                message: errorText || 'Failed to submit articles for bulk processing.',
+                message:
+                    errorText ||
+                    'Failed to submit articles for bulk processing.',
             }
         }
 

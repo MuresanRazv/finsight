@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     return (
         <WebSocketProvider token={session.token}>
             <SearchStateProvider>
-                <div className='flex h-screen overflow-hidden bg-background text-foreground antialiased'>
+                <div className='bg-background text-foreground flex h-screen overflow-hidden antialiased'>
                     <Sidebar session={session.user} />
                     <div className='relative flex flex-1 flex-col overflow-hidden'>
                         <TopNav />

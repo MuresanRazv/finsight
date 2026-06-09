@@ -17,7 +17,7 @@ export function TopNav() {
     const isSearchOrChat = pathname === '/search' || pathname === '/chat'
 
     return (
-        <header className='relative z-10 flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-8'>
+        <header className='border-border bg-background/80 relative z-10 flex h-16 items-center justify-between border-b px-8 backdrop-blur-xl'>
             {/* Left side: Page Title & Subtitle (conditionally rendered) */}
             <div className='flex-1'>
                 {pathname === '/search' && (
@@ -48,7 +48,7 @@ export function TopNav() {
             <div className='flex items-center space-x-6'>
                 {/* Search/Chat Toggle Switch */}
                 {isSearchOrChat && (
-                    <div className='flex items-center rounded-full border border-border bg-surface-container p-1'>
+                    <div className='border-border bg-surface-container flex items-center rounded-full border p-1'>
                         <button
                             onClick={() => router.push('/search')}
                             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
@@ -73,17 +73,17 @@ export function TopNav() {
                 )}
 
                 {/* Icons */}
-                <div className='flex items-center space-x-4 text-muted-foreground'>
+                <div className='text-muted-foreground flex items-center space-x-4'>
                     <NotificationBell />
                     <button
                         onClick={() => router.push('/settings')}
-                        className='transition-colors hover:text-foreground'
+                        className='hover:text-foreground transition-colors'
                     >
                         <User className='h-5 w-5' />
                     </button>
                     <button
                         onClick={handleLogout}
-                        className='transition-colors hover:text-foreground'
+                        className='hover:text-foreground transition-colors'
                     >
                         <LogOut className='h-5 w-5' />
                     </button>

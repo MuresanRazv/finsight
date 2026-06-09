@@ -45,7 +45,7 @@ def test_chromadb():
 
     # 4. Run a live Semantic Search Test
     print("\n🔍 Running a manual Semantic Search test...")
-    test_query = "supply chain or semiconductor shortages"
+    test_query = "Summarize AAPL earnings"
     print(f"Querying for: '{test_query}'")
 
     results = collection.query(
