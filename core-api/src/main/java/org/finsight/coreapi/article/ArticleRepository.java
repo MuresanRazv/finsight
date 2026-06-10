@@ -23,4 +23,7 @@ public interface ArticleRepository extends JpaRepository<Article, ArticleId> {
 
     @EntityGraph(attributePaths = {"entities"})
     java.util.Optional<Article> findByUrlAndProcessedAt(String url, OffsetDateTime processedAt);
+
+    @EntityGraph(attributePaths = {"entities"})
+    java.util.Optional<Article> findByUuid(java.util.UUID uuid);
 }

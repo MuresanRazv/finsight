@@ -53,7 +53,8 @@ public class ChatService {
                                             entity.getName(),
                                             entity.getTicker(),
                                             entity.getSentimentScore(),
-                                            entity.getSentimentLabel()
+                                            entity.getSentimentLabel(),
+                                            entity.getUuid()
                                     ))
                                     .toList()
                     ))

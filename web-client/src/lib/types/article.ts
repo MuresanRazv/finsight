@@ -3,6 +3,7 @@ export interface EntitySentiment {
     ticker?: string
     sentiment_score: number
     sentiment_label: string
+    uuid?: string
 }
 
 export interface ArticleDto {
@@ -14,6 +15,7 @@ export interface ArticleDto {
     entities: EntitySentiment[]
     semantic_vector_id: string
     processed_at: string
+    uuid?: string
 }
 
 export interface FilterDefinition {

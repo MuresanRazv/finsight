@@ -1,12 +1,20 @@
 package org.finsight.coreapi.search;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.finsight.coreapi.search.SearchQuery;
+import org.finsight.coreapi.article.Article;
+import org.finsight.coreapi.article.ArticleRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/search")
@@ -15,12 +23,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class SearchController {
 
     private final WebClient.Builder webClientBuilder;
+    private final ArticleRepository articleRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${nlp.api.url}")
     private String nlpApiUrl;
 
     @GetMapping("/semantic")
-    public ResponseEntity<String> semanticSearch(@ModelAttribute SearchQuery query) {
+    public ResponseEntity<?> semanticSearch(@ModelAttribute SearchQuery query) {
         String url = nlpApiUrl + "/search?query=" + query.getQuery();
         log.info("Calling NLP API: {}", url);
         
@@ -35,8 +45,25 @@ public class SearchController {
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
+            
+            List<Map<String, Object>> results = objectMapper.readValue(responseBody, new TypeReference<List<Map<String, Object>>>() {});
+            for (Map<String, Object> item : results) {
+                try {
+                    String itemUrl = (String) item.get("url");
+                    String publishedAtStr = (String) item.get("published_at");
+                    if (itemUrl != null && publishedAtStr != null) {
+                        OffsetDateTime processedAt = OffsetDateTime.parse(publishedAtStr);
+                        Optional<Article> articleOpt = articleRepository.findByUrlAndProcessedAt(itemUrl, processedAt);
+                        if (articleOpt.isPresent()) {
+                            item.put("uuid", articleOpt.get().getUuid().toString());
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.warn("Failed to lookup UUID for search item: {}", ex.getMessage());
+                }
+            }
                     
-            return ResponseEntity.ok(responseBody);
+            return ResponseEntity.ok(results);
         } catch (Exception e) {
             log.error("Failed to execute semantic search: {}", e.getMessage(), e);
             if (isConnectionError(e)) {

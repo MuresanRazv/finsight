@@ -1,11 +1,11 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, use } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { getUserSettings, updateUserSettings } from '@/app/actions/settings'
-import { getArticleDetail } from '@/app/actions/articles'
+import { getArticleDetail, getTickerRelatedNews, TickerRelatedNewsItem } from '@/app/actions/articles'
 import {
     ArrowLeft,
     TrendingUp,
@@ -108,7 +108,12 @@ const groupTickers = (entities: any[]) => {
     return Object.values(groups)
 }
 
-function ArticleDeepDiveContent() {
+function ArticleDeepDiveContent({
+    params,
+}: {
+    params: Promise<{ slug?: string[] }>
+}) {
+    const { slug } = use(params)
     const searchParams = useSearchParams()
     const router = useRouter()
     const [watchlistTickers, setWatchlistTickers] = useState<string[]>([])
@@ -135,32 +140,27 @@ function ArticleDeepDiveContent() {
         fetchSettings()
     }, [])
 
-    // Read query params and build the article data dynamically
-    const qTitle = searchParams.get('title')
-    const qUrl = searchParams.get('url')
-    const qSource = searchParams.get('source')
-    const qPublishedAt = searchParams.get('published_at') || searchParams.get('processed_at')
-    const qSentimentScore = searchParams.get('sentiment_score')
-    const qSentimentLabel = searchParams.get('sentiment_label')
-    const qEntitiesRaw = searchParams.get('entities')
+    // Resolve parameter inputs: route parameters (slug) take priority over query parameters (fallback)
+    let uuidParam = searchParams.get('id') || searchParams.get('uuid')
+
+    if (slug && slug.length > 0) {
+        uuidParam = slug[0]
+    }
 
     const [dbArticle, setDbArticle] = useState<any>(null)
     const [articleLoading, setArticleLoading] = useState(true)
 
-    // Load article from database if url and processed_at are present
+    // Load article from database if uuid is present
     useEffect(() => {
         const loadArticle = async () => {
-            const urlParam = searchParams.get('url')
-            const processedAtParam = searchParams.get('published_at') || searchParams.get('processed_at')
-
-            if (!urlParam || !processedAtParam) {
+            if (!uuidParam) {
                 setArticleLoading(false)
                 return
             }
 
             setArticleLoading(true)
             try {
-                const data = await getArticleDetail(urlParam, processedAtParam)
+                const data = await getArticleDetail(uuidParam)
                 if (data) {
                     const parsedEntities = (data.entities || []).map((e: any) => ({
                         name: e.name || e.ticker || 'Unknown',
@@ -193,66 +193,9 @@ function ArticleDeepDiveContent() {
         }
 
         loadArticle()
-    }, [searchParams])
+    }, [uuidParam])
 
-    // Backward-compatible synchronous parsing of search parameters
-    const syncParsedArticle = (() => {
-        if (qTitle && qUrl) {
-            let parsedEntities = []
-            try {
-                if (qEntitiesRaw) {
-                    const parsed = JSON.parse(qEntitiesRaw)
-                    parsedEntities = parsed.map((e: any) => ({
-                        name: e.name || e.ticker || 'Unknown',
-                        ticker: e.ticker || null,
-                        sentiment_score: e.sentiment_score !== undefined ? e.sentiment_score : 0.5,
-                        sentiment_label: e.sentiment_label || 'neutral',
-                    }))
-                }
-            } catch (e) {
-                console.error('Failed to parse entities from query', e)
-            }
-
-            const finalEntities =
-                parsedEntities.length > 0
-                    ? parsedEntities
-                    : [
-                          {
-                              name: 'NVIDIA Corp',
-                              ticker: 'NVDA',
-                              sentiment_score: 0.92,
-                              sentiment_label: 'positive',
-                          },
-                          {
-                              name: 'Microsoft Corp',
-                              ticker: 'MSFT',
-                              sentiment_score: 0.65,
-                              sentiment_label: 'positive',
-                          },
-                      ]
-
-            const sentimentLabel = qSentimentLabel || 'neutral'
-            const sentimentScoreNum = qSentimentScore
-                ? parseFloat(qSentimentScore)
-                : 0.5
-
-            return {
-                title: qTitle || 'Analyzed Article Details',
-                url: qUrl || 'https://www.finsight.ai',
-                source: qSource || getSourceFromUrl(qUrl) || 'AI Crawler',
-                published_at: qPublishedAt || new Date().toISOString(),
-                sentiment_score: sentimentScoreNum,
-                sentiment_label: sentimentLabel,
-                category: 'MARKET TREND',
-                readTime: '5 MIN READ',
-                author: 'FinSight Research',
-                entities: finalEntities,
-            }
-        }
-        return null
-    })()
-
-    const article = dbArticle || syncParsedArticle || defaultArticle
+    const article = dbArticle || defaultArticle
 
     const primaryTicker =
         article.entities.find(
@@ -260,99 +203,120 @@ function ArticleDeepDiveContent() {
         )?.ticker || 'NVDA'
     const activeChartTicker = selectedChartTicker || primaryTicker
 
-    const [chartDataClose, setChartDataClose] = useState<number[]>([])
+    const [sentimentTimeline, setSentimentTimeline] = useState<TickerRelatedNewsItem[]>([])
     const [chartLoading, setChartLoading] = useState(true)
+    const [hoveredPoint, setHoveredPoint] = useState<{
+        index: number
+        x: number
+        y: number
+        title: string
+        source: string
+        sentiment: string
+        score: number
+        date: string
+    } | null>(null)
 
     useEffect(() => {
-        const fetchChartData = async () => {
+        const fetchSentimentData = async () => {
             setChartLoading(true)
             try {
-                const publishedTime = Math.floor(
-                    new Date(article.published_at).getTime() / 1000,
-                )
-                const from = publishedTime - 3 * 86400
-                const to = publishedTime + 4 * 86400
+                // Fetch up to 15 related news sentiments from TimescaleDB
+                const data = await getTickerRelatedNews(activeChartTicker, 15)
+                let timeline: TickerRelatedNewsItem[] = data ? [...data] : []
 
-                const res = await fetch(
-                    `/api/stocks/${activeChartTicker.toLowerCase()}/candles?from=${from}&to=${to}`,
-                )
-                if (res.ok) {
-                    const parsed = await res.json()
-                    if (
-                        parsed &&
-                        Array.isArray(parsed.close) &&
-                        parsed.close.length > 0
-                    ) {
-                        setChartDataClose(parsed.close)
-                        return
-                    }
+                // Check if the current article is in the fetched list (matching by url)
+                const hasCurrent = timeline.some(item => item.url === article.url)
+                if (!hasCurrent && article.published_at) {
+                    // If not, add the current article's sentiment to the timeline
+                    timeline.push({
+                        title: article.title,
+                        source: article.source,
+                        url: article.url,
+                        processed_at: article.published_at,
+                        sentiment: article.sentiment_label as 'positive' | 'neutral' | 'negative',
+                        sentiment_score: article.sentiment_score
+                    })
                 }
+
+                // Sort timeline chronologically (ascending)
+                timeline.sort((a, b) => new Date(a.processed_at).getTime() - new Date(b.processed_at).getTime())
+                setSentimentTimeline(timeline)
             } catch (err) {
-                console.error('Failed to load chart candles', err)
+                console.error('Failed to load sentiment correlation data', err)
+                // Fallback mock data if the call fails
+                setSentimentTimeline([
+                    { title: 'NVDA reports record revenue', source: 'Reuters', url: '1', processed_at: new Date(Date.now() - 3 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.95 },
+                    { title: 'Analysts warn of NVDA valuation', source: 'Bloomberg', url: '2', processed_at: new Date(Date.now() - 2 * 86400 * 1000).toISOString(), sentiment: 'neutral', sentiment_score: 0.5 },
+                    { title: article.title, source: article.source, url: article.url, processed_at: article.published_at, sentiment: article.sentiment_label as 'positive' | 'neutral' | 'negative', sentiment_score: article.sentiment_score },
+                    { title: 'NVDA launches next-gen Blackwell chips', source: 'TechCrunch', url: '4', processed_at: new Date(Date.now() + 1 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.88 },
+                    { title: 'Global chip demand remains strong', source: 'WSJ', url: '5', processed_at: new Date(Date.now() + 2 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.72 }
+                ])
             } finally {
                 setChartLoading(false)
             }
-            // Fallback mock if call failed
-            setChartDataClose([150, 155, 140, 142, 148, 160, 158, 165])
         }
-        fetchChartData()
-    }, [activeChartTicker, article.published_at])
+        if (activeChartTicker) {
+            fetchSentimentData()
+        }
+    }, [
+        activeChartTicker,
+        article.url,
+        article.title,
+        article.source,
+        article.published_at,
+        article.sentiment_label,
+        article.sentiment_score
+    ])
 
-    const minPrice = chartDataClose.length > 0 ? Math.min(...chartDataClose) : 0
-    const maxPrice =
-        chartDataClose.length > 0 ? Math.max(...chartDataClose) : 100
-    const priceRange = maxPrice - minPrice
+    const getSentimentValue = (item: TickerRelatedNewsItem) => {
+        if (!item) return 0
+        const score = item.sentiment_score ?? 0
+        if (item.sentiment === 'positive') return score
+        if (item.sentiment === 'negative') return -score
+        return 0
+    }
 
-    const pathD = chartDataClose
-        .map((price, idx) => {
-            const x =
-                chartDataClose.length > 1
-                    ? (idx / (chartDataClose.length - 1)) * 800
-                    : 0
-            const y = 185 - ((price - minPrice) / (priceRange || 1)) * 150
+    const eventIndex = sentimentTimeline.findIndex(item => item.url === article.url)
+    const eventItem = eventIndex !== -1 ? sentimentTimeline[eventIndex] : null
+    const eventValue = eventItem ? getSentimentValue(eventItem) : (
+        article.sentiment_label === 'positive'
+            ? article.sentiment_score
+            : article.sentiment_label === 'negative'
+                ? -article.sentiment_score
+                : 0
+    )
+
+    const pathD = sentimentTimeline.length > 1
+        ? sentimentTimeline.map((item, idx) => {
+            const x = (idx / (sentimentTimeline.length - 1)) * 800
+            const y = 110 - getSentimentValue(item) * 80
             return `${idx === 0 ? 'M' : 'L'}${x},${y}`
-        })
-        .join(' ')
+        }).join(' ')
+        : ''
 
     const areaD = pathD ? `${pathD} V220 H0 Z` : ''
 
-    const baselineD = chartDataClose
-        .map((_, idx) => {
-            const x =
-                chartDataClose.length > 1
-                    ? (idx / (chartDataClose.length - 1)) * 800
-                    : 0
-            const y = 140 + Math.sin(idx) * 5 + idx * 2
-            return `${idx === 0 ? 'M' : 'L'}${x},${y}`
-        })
-        .join(' ')
+    const eventX = sentimentTimeline.length > 1
+        ? (eventIndex !== -1 ? (eventIndex / (sentimentTimeline.length - 1)) * 800 : 400)
+        : 400
+    const eventY = 110 - eventValue * 80
 
-    const eventIndex =
-        chartDataClose.length > 3 ? 3 : Math.floor(chartDataClose.length / 2)
-    const eventX =
-        chartDataClose.length > 1
-            ? (eventIndex / (chartDataClose.length - 1)) * 800
-            : 400
-    const eventPriceVal =
-        chartDataClose[eventIndex] || (maxPrice + minPrice) / 2
-    const eventY = 185 - ((eventPriceVal - minPrice) / (priceRange || 1)) * 150
-
-    const finalPrice = chartDataClose[chartDataClose.length - 1] || 0
-    const eventPrice = chartDataClose[eventIndex] || 0
-    const priceDiffPercent =
-        eventPrice > 0 ? ((finalPrice - eventPrice) / eventPrice) * 100 : 0
+    const finalItem = sentimentTimeline[sentimentTimeline.length - 1]
+    const finalValue = finalItem ? getSentimentValue(finalItem) : eventValue
+    const sentimentShift = finalValue - eventValue // Range: -2.0 to 2.0
+    const sentimentShiftPercent = sentimentShift * 100 // Shift on a percentage scale, e.g. +60% Shift
 
     const chartStrokeColor =
-        priceDiffPercent > 0.1
+        sentimentShift > 0.05
             ? '#10B981'
-            : priceDiffPercent < -0.1
+            : sentimentShift < -0.05
               ? '#EF4444'
               : 'var(--primary)'
 
     const chartFillUrl =
-        priceDiffPercent > 0.1
+        sentimentShift > 0.05
             ? 'url(#chartAreaGradientGreen)'
-            : priceDiffPercent < -0.1
+            : sentimentShift < -0.05
               ? 'url(#chartAreaGradientRed)'
               : 'url(#chartAreaGradientBlue)'
 
@@ -395,7 +359,7 @@ function ArticleDeepDiveContent() {
           ? 'bg-sentiment-negative/10 border-sentiment-negative/30'
           : 'bg-sentiment-neutral/10 border-sentiment-neutral/30'
 
-    if (articleLoading && !dbArticle && (qUrl && qPublishedAt)) {
+    if (articleLoading && !dbArticle && uuidParam) {
         return (
             <div className='flex h-[60vh] w-full flex-col items-center justify-center gap-4 text-slate-100'>
                 <div className='border-primary h-8 w-8 animate-spin rounded-full border-4 border-t-transparent'></div>
@@ -573,33 +537,32 @@ function ArticleDeepDiveContent() {
                         </div>
                     </div>
 
-                    {/* SVG Chart: Price Correlation */}
-                    <div className='bg-surface-container border-border rounded-xl border p-6 shadow-md'>
+                    {/* SVG Chart: Sentiment Correlation */}
+                    <div className='bg-surface-container border-border rounded-xl border p-6 shadow-md relative'>
                         <div className='mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center'>
                             <div>
                                 <div className='flex flex-wrap items-center gap-2.5'>
                                     <h3 className='text-foreground text-base font-bold'>
-                                        Post-Article Price Correlation
+                                        Post-Article Sentiment Correlation
                                     </h3>
                                     <span
                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold whitespace-nowrap transition-all ${
                                             chartLoading
                                                 ? 'bg-surface-container-highest/60 text-muted-foreground/60 animate-pulse'
-                                                : priceDiffPercent > 0.1
+                                                : sentimentShift > 0.05
                                                   ? 'bg-sentiment-positive/10 text-sentiment-positive'
-                                                  : priceDiffPercent < -0.1
+                                                  : sentimentShift < -0.05
                                                     ? 'bg-sentiment-negative/10 text-sentiment-negative'
                                                     : 'bg-sentiment-neutral/10 text-sentiment-neutral'
                                         }`}
                                     >
                                         {chartLoading
                                             ? 'Calculating...'
-                                            : `${priceDiffPercent > 0.1 ? '+' : ''}${priceDiffPercent.toFixed(2)}% Reaction`}
+                                            : `${sentimentShift > 0.05 ? '+' : ''}${sentimentShiftPercent.toFixed(0)}% Sentiment Shift`}
                                     </span>
                                 </div>
                                 <p className='text-muted-foreground mt-1 text-xs'>
-                                    Historical {activeChartTicker} reaction
-                                    relative to article publication date (T-0)
+                                    Sentiment timeline of {activeChartTicker} over time, highlighting the current article (T-0)
                                 </p>
                             </div>
                             <div className='flex items-center gap-4 text-xs font-semibold'>
@@ -652,7 +615,7 @@ function ArticleDeepDiveContent() {
                                 </div>
                                 <div className='text-muted-foreground flex items-center gap-1.5 whitespace-nowrap'>
                                     <span className='border-muted-foreground/60 h-0 w-6 border-t border-dashed'></span>
-                                    <span>Index Baseline</span>
+                                    <span>Neutral Baseline</span>
                                 </div>
                             </div>
                         </div>
@@ -663,34 +626,20 @@ function ArticleDeepDiveContent() {
                                 className='h-full w-full overflow-visible'
                                 viewBox='0 0 800 220'
                             >
-                                {/* Grid Lines */}
-                                <line
-                                    x1='0'
-                                    y1='180'
-                                    x2='800'
-                                    y2='180'
-                                    stroke='var(--border)'
-                                    strokeWidth='1'
-                                    strokeOpacity='0.4'
-                                ></line>
-                                <line
-                                    x1='0'
-                                    y1='120'
-                                    x2='800'
-                                    y2='120'
-                                    stroke='var(--border)'
-                                    strokeWidth='1'
-                                    strokeOpacity='0.4'
-                                ></line>
-                                <line
-                                    x1='0'
-                                    y1='60'
-                                    x2='800'
-                                    y2='60'
-                                    stroke='var(--border)'
-                                    strokeWidth='1'
-                                    strokeOpacity='0.4'
-                                ></line>
+                                {/* Grid Lines with Labels */}
+                                <g opacity='0.45'>
+                                    {/* Positive Grid */}
+                                    <line x1='85' y1='30' x2='800' y2='30' stroke='var(--border)' strokeWidth='1' />
+                                    <text x='5' y='34' fill='var(--foreground)' fontSize='12' className='font-bold uppercase tracking-wider opacity-90'>Positive</text>
+
+                                    {/* Neutral Grid */}
+                                    <line x1='85' y1='110' x2='800' y2='110' stroke='var(--border)' strokeWidth='1' strokeDasharray='4' />
+                                    <text x='5' y='114' fill='var(--foreground)' fontSize='12' className='font-bold uppercase tracking-wider opacity-90'>Neutral</text>
+
+                                    {/* Negative Grid */}
+                                    <line x1='85' y1='190' x2='800' y2='190' stroke='var(--border)' strokeWidth='1' />
+                                    <text x='5' y='194' fill='var(--foreground)' fontSize='12' className='font-bold uppercase tracking-wider opacity-90'>Negative</text>
+                                </g>
 
                                 {/* Area Gradient definitions */}
                                 <defs>
@@ -759,9 +708,9 @@ function ArticleDeepDiveContent() {
                                         textAnchor='middle'
                                         opacity='0.6'
                                     >
-                                        Loading historical candles...
+                                        Loading historical sentiments...
                                     </text>
-                                ) : chartDataClose.length === 0 ? (
+                                ) : sentimentTimeline.length === 0 ? (
                                     <text
                                         x='400'
                                         y='110'
@@ -770,74 +719,143 @@ function ArticleDeepDiveContent() {
                                         textAnchor='middle'
                                         opacity='0.6'
                                     >
-                                        Price chart is unavailable (Finnhub API Key required).
+                                        Sentiment data is currently unavailable.
                                     </text>
                                 ) : (
                                     <>
-                                        {/* Primary Asset Line */}
-                                        <path
-                                            d={pathD}
-                                            fill='none'
-                                            stroke={chartStrokeColor}
-                                            strokeWidth='3.5'
-                                            strokeLinecap='round'
-                                        />
+                                        {/* Primary Sentiment Line */}
+                                        {pathD && (
+                                            <>
+                                                <path
+                                                    d={pathD}
+                                                    fill='none'
+                                                    stroke={chartStrokeColor}
+                                                    strokeWidth='3.5'
+                                                    strokeLinecap='round'
+                                                />
+                                                <path d={areaD} fill={chartFillUrl} />
+                                            </>
+                                        )}
 
-                                        <path d={areaD} fill={chartFillUrl} />
+                                        {/* Event Vertical Marker Line */}
+                                        {sentimentTimeline.length > 1 && (
+                                            <line
+                                                x1={eventX}
+                                                y1='30'
+                                                x2={eventX}
+                                                y2='190'
+                                                stroke='var(--primary)'
+                                                strokeWidth='1.5'
+                                                strokeDasharray='4 4'
+                                                strokeOpacity='0.7'
+                                                className='pointer-events-none'
+                                            />
+                                        )}
 
-                                        {/* Index Baseline Line */}
-                                        <path
-                                            d={baselineD}
-                                            fill='none'
-                                            stroke='var(--foreground)'
-                                            strokeWidth='2'
-                                            strokeDasharray='5'
-                                            strokeOpacity='0.4'
-                                        />
+                                        {/* Sentiment Dots */}
+                                        {sentimentTimeline.map((item, idx) => {
+                                            const x = sentimentTimeline.length > 1
+                                                ? (idx / (sentimentTimeline.length - 1)) * 800
+                                                : 400
+                                            const y = 110 - getSentimentValue(item) * 80
+                                            const isEvent = idx === eventIndex
+                                            return (
+                                                <g key={item.url + '-' + idx}>
+                                                    {/* Hover active region */}
+                                                    <circle
+                                                        cx={x}
+                                                        cy={y}
+                                                        r='16'
+                                                        fill='transparent'
+                                                        className='cursor-pointer'
+                                                        onMouseEnter={() => setHoveredPoint({
+                                                            index: idx,
+                                                            x,
+                                                            y,
+                                                            title: item.title,
+                                                            source: item.source,
+                                                            sentiment: item.sentiment,
+                                                            score: item.sentiment_score,
+                                                            date: new Date(item.processed_at).toLocaleString()
+                                                        })}
+                                                        onMouseLeave={() => setHoveredPoint(null)}
+                                                    />
+                                                    {/* Visible dot */}
+                                                    <circle
+                                                        cx={x}
+                                                        cy={y}
+                                                        r={isEvent ? '7' : '4.5'}
+                                                        fill={isEvent ? 'var(--primary)' : (
+                                                            item.sentiment === 'positive'
+                                                                ? '#10B981'
+                                                                : item.sentiment === 'negative'
+                                                                    ? '#EF4444'
+                                                                    : 'var(--muted-foreground)'
+                                                        )}
+                                                        stroke={isEvent ? 'var(--background)' : 'var(--surface-container)'}
+                                                        strokeWidth={isEvent ? '3' : '1.5'}
+                                                        className='pointer-events-none transition-all duration-150'
+                                                    />
+                                                </g>
+                                            )
+                                        })}
 
-                                        {/* Event Dot Marker */}
-                                        <g
-                                            transform={`translate(${eventX}, ${eventY})`}
-                                        >
-                                            <circle
-                                                r='6'
-                                                fill='var(--primary)'
-                                                stroke='var(--background)'
-                                                strokeWidth='2.5'
-                                            ></circle>
-                                            <rect
-                                                x='-55'
-                                                y='-35'
-                                                width='110'
-                                                height='24'
-                                                rx='4'
-                                                fill='var(--surface-container-highest)'
-                                                stroke='var(--border)'
-                                                strokeWidth='1'
-                                            ></rect>
-                                            <text
-                                                x='0'
-                                                y='-20'
-                                                fill='var(--foreground)'
-                                                fontSize='9'
-                                                fontWeight='bold'
-                                                textAnchor='middle'
+                                        {/* SVG Tooltip using foreignObject */}
+                                        {hoveredPoint && (
+                                            <foreignObject
+                                                x={Math.max(10, Math.min(800 - 300 - 10, hoveredPoint.x - 150))}
+                                                y={Math.max(5, hoveredPoint.y - 125)}
+                                                width='300'
+                                                height='120'
+                                                className='pointer-events-none overflow-visible'
                                             >
-                                                Article Published
-                                            </text>
-                                        </g>
+                                                <div className='bg-surface-container-highest/95 backdrop-blur-md border border-border p-3.5 rounded-lg shadow-2xl text-[13px] leading-snug'>
+                                                    <div className='flex items-center justify-between gap-2.5 mb-2'>
+                                                        <span className='text-muted-foreground font-mono text-[11px]'>{hoveredPoint.date.split(',')[0]}</span>
+                                                        <span className={`text-[10px] font-bold uppercase rounded-full px-2 py-0.5 ${
+                                                            hoveredPoint.sentiment === 'positive'
+                                                                ? 'bg-sentiment-positive/10 text-sentiment-positive'
+                                                                : hoveredPoint.sentiment === 'negative'
+                                                                  ? 'bg-sentiment-negative/10 text-sentiment-negative'
+                                                                  : 'bg-sentiment-neutral/15 text-muted-foreground'
+                                                        }`}>
+                                                            {hoveredPoint.sentiment} ({Math.round(hoveredPoint.score * 100)}%)
+                                                        </span>
+                                                    </div>
+                                                    <div className='font-extrabold text-foreground line-clamp-2 mb-1 text-[13px]'>{hoveredPoint.title}</div>
+                                                    <div className='text-[11px] text-muted-foreground font-semibold'>{hoveredPoint.source}</div>
+                                                </div>
+                                            </foreignObject>
+                                        )}
                                     </>
                                 )}
                             </svg>
                         </div>
 
-                        <div className='text-muted-foreground mt-4 flex justify-between px-2 text-[10px] font-semibold tracking-widest uppercase'>
-                            <span>T-3 Days</span>
-                            <span>T-1 Day</span>
-                            <span>Published</span>
-                            <span>T+2 Days</span>
-                            <span>T+4 Days</span>
+                        {/* Bottom date labels */}
+                        <div className='text-muted-foreground mt-4 flex justify-between px-2 text-[12px] font-bold tracking-wider uppercase'>
+                            {sentimentTimeline.length > 1 ? (
+                                <>
+                                    <span>First: {new Date(sentimentTimeline[0].processed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                    <span className='text-primary font-extrabold'>Current Article ({new Date(article.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})</span>
+                                    <span>Latest: {new Date(sentimentTimeline[sentimentTimeline.length - 1].processed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                </>
+                            ) : (
+                                <span className='w-full text-center text-primary font-extrabold'>
+                                    Current Article ({new Date(article.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                                </span>
+                            )}
                         </div>
+
+                        {/* Helper banner for low data points */}
+                        {sentimentTimeline.length < 3 && !chartLoading && (
+                            <div className='mt-4 p-3 bg-surface-container-low border border-border/50 rounded-lg flex items-center gap-2.5 text-xs text-muted-foreground animate-fadeIn'>
+                                <Activity className='h-4 w-4 text-primary animate-pulse shrink-0' />
+                                <span>
+                                    Sentiment trend mapping requires 3 or more articles to show historical shifts. Ingest more news for <strong>{activeChartTicker}</strong> to expand the correlation. (Currently {sentimentTimeline.length} stored)
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -979,6 +997,41 @@ function ArticleDeepDiveContent() {
                         </div>
                     </div>
 
+                    {/* Unidentified Keywords */}
+                    {(() => {
+                        const unidentified = (article.entities || []).filter(
+                            (e: any) => e && (!e.ticker || typeof e.ticker !== 'string' || e.ticker.trim() === '')
+                        )
+                        if (unidentified.length === 0) return null
+
+                        return (
+                            <div className='bg-surface-container border-border rounded-xl border p-6 shadow-md'>
+                                <h3 className='text-muted-foreground mb-4 text-xs font-bold tracking-widest uppercase'>
+                                    KEYWORDS
+                                </h3>
+                                <div className='flex flex-wrap gap-2'>
+                                    {unidentified.map((entity: any, index: number) => {
+                                        const labelBg = entity.sentiment_label === 'positive'
+                                            ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/30'
+                                            : entity.sentiment_label === 'negative'
+                                              ? 'bg-sentiment-negative/10 text-sentiment-negative border-sentiment-negative/30'
+                                              : 'bg-sentiment-neutral/10 text-sentiment-neutral border-sentiment-neutral/30'
+                                        
+                                        return (
+                                            <div
+                                                key={index}
+                                                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${labelBg}`}
+                                                title={`Sentiment: ${entity.sentiment_label} (${Math.round(entity.sentiment_score * 100)}%)`}
+                                            >
+                                                <span>{entity.name}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })()}
+
                 </div>
             </div>
 
@@ -1020,7 +1073,11 @@ function ArticleDeepDiveContent() {
     )
 }
 
-export default function ArticleDeepDivePage() {
+export default function ArticleDeepDivePage({
+    params,
+}: {
+    params: Promise<{ slug?: string[] }>
+}) {
     return (
         <Suspense
             fallback={
@@ -1029,7 +1086,7 @@ export default function ArticleDeepDivePage() {
                 </div>
             }
         >
-            <ArticleDeepDiveContent />
+            <ArticleDeepDiveContent params={params} />
         </Suspense>
     )
 }

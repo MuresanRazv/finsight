@@ -184,14 +184,13 @@ public class ArticleController {
         }
     }
 
-    @GetMapping("/detail")
-    public ResponseEntity<AnalyzedArticleDto> getArticleDetail(
-            @RequestParam("url") String url,
-            @RequestParam("processed_at") String processedAt
+
+    @GetMapping("/detail/{uuid}")
+    public ResponseEntity<AnalyzedArticleDto> getArticleDetailByUuid(
+            @PathVariable("uuid") java.util.UUID uuid
     ) {
-        log.info("Fetching article detail for URL: {} at {}", url, processedAt);
-        OffsetDateTime processedDateTime = OffsetDateTime.parse(processedAt);
-        Article article = articleRepository.findByUrlAndProcessedAt(url, processedDateTime)
+        log.info("Fetching article detail for UUID: {}", uuid);
+        Article article = articleRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RuntimeException("Article not found"));
 
         List<EntitySentimentDto> entityDtos = article.getEntities().stream()
@@ -199,7 +198,8 @@ public class ArticleController {
                         e.getName(),
                         e.getTicker(),
                         e.getSentimentScore(),
-                        e.getSentimentLabel()
+                        e.getSentimentLabel(),
+                        e.getUuid()
                 ))
                 .collect(Collectors.toList());
 
@@ -212,7 +212,8 @@ public class ArticleController {
                 entityDtos,
                 article.getSemanticVectorId(),
                 article.getProcessedAt(),
-                null
+                null,
+                article.getUuid()
         );
 
         return ResponseEntity.ok(dto);
@@ -235,7 +236,8 @@ public class ArticleController {
                 s.getArticle() != null ? s.getArticle().getUrl() : "",
                 s.getProcessedAt(),
                 s.getSentimentLabel() != null ? s.getSentimentLabel().toLowerCase() : "neutral",
-                s.getSentimentScore()
+                s.getSentimentScore(),
+                s.getArticle() != null ? s.getArticle().getUuid() : null
         )).collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);

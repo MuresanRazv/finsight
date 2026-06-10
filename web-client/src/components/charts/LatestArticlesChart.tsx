@@ -99,15 +99,7 @@ export function LatestArticlesChart() {
                                     >
                                         <div className='flex items-start justify-between gap-4'>
                                             <Link
-                                                href={{
-                                                    pathname:
-                                                        '/articles/deep-dive',
-                                                    query: {
-                                                        url: article.url,
-                                                        processed_at:
-                                                            article.processed_at,
-                                                    },
-                                                }}
+                                                href={`/articles/deep-dive/${article.uuid}`}
                                                 className='hover:text-primary cursor-pointer text-sm leading-tight font-medium transition-colors'
                                                 title={article.url}
                                             >

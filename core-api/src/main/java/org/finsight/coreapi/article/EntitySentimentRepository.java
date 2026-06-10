@@ -17,4 +17,6 @@ public interface EntitySentimentRepository extends JpaRepository<EntitySentiment
 
     @EntityGraph(attributePaths = {"article"})
     List<EntitySentiment> findByTickerOrderByProcessedAtDesc(String ticker, Pageable pageable);
+
+    java.util.Optional<EntitySentiment> findByUuid(java.util.UUID uuid);
 }

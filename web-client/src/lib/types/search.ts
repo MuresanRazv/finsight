@@ -14,6 +14,7 @@ export interface SearchResultItem {
     sentiment_score: number
     relevance_score: number
     entities: EntitySentiment[]
+    uuid?: string
 }
 
 export type SearchResponseData = SearchResultItem[]

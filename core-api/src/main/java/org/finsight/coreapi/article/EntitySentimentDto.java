@@ -4,6 +4,7 @@ public record EntitySentimentDto(
         String name,
         String ticker,
         Double sentimentScore,
-        String sentimentLabel
+        String sentimentLabel,
+        java.util.UUID uuid
 ) {
 }

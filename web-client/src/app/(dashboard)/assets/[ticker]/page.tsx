@@ -311,40 +311,12 @@ export default function TickerPage({
     const isPositive = stockQuote?.change !== null ? stockQuote?.change >= 0 : false
     const isAddedToWatchlist = watchlistTickers.includes(symbol)
 
-    // Related News Redirection Helper
     const navigateToArticleAnalysis = (newsArticle: any) => {
-        const processedAt = newsArticle.processed_at || newsArticle.processedAt
-        if (newsArticle.url && processedAt) {
-            const queryParams = new URLSearchParams({
-                url: newsArticle.url,
-                processed_at: processedAt,
-            })
-            router.push(`/articles/deep-dive?${queryParams.toString()}`)
-            return
+        if (newsArticle.uuid) {
+            router.push(`/articles/deep-dive/${newsArticle.uuid}`)
+        } else {
+            toast.error('Deep dive analysis is only available for fully processed database articles.')
         }
-
-        const queryParams = new URLSearchParams({
-            title: newsArticle.title,
-            url: newsArticle.url,
-            source: newsArticle.source,
-            published_at: processedAt || new Date().toISOString(),
-            sentiment_score:
-                newsArticle.sentiment === 'positive'
-                    ? '0.85'
-                    : newsArticle.sentiment === 'negative'
-                      ? '0.15'
-                      : '0.50',
-            sentiment_label: newsArticle.sentiment,
-            entities: JSON.stringify([
-                {
-                    ticker: symbol,
-                    name: stockQuote?.name || `${symbol} Corp.`,
-                    price: stockQuote?.price || null,
-                    change: stockQuote?.changePercent || null,
-                },
-            ]),
-        })
-        router.push(`/articles/deep-dive?${queryParams.toString()}`)
     }
 
     return (

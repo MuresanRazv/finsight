@@ -70,9 +70,11 @@ public class NotificationService {
                                 e.getName(),
                                 e.getTicker(),
                                 e.getSentimentScore(),
-                                e.getSentimentLabel()
+                                e.getSentimentLabel(),
+                                e.getUuid()
                         ))
-                        .collect(Collectors.toList()) : List.of()
+                        .collect(Collectors.toList()) : List.of(),
+                notification.getArticle() != null ? notification.getArticle().getUuid() : null
         );
     }
 }

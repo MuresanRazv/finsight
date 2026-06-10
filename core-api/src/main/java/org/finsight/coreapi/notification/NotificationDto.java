@@ -17,6 +17,7 @@ public record NotificationDto(
     String articleTitle,
     Double articleOverallSentimentScore,
     String articleOverallSentimentLabel,
-    List<EntitySentimentDto> articleEntities
+    List<EntitySentimentDto> articleEntities,
+    java.util.UUID articleUuid
 ) {}
 

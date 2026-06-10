@@ -13,6 +13,8 @@ export type IngestionRequestItem = {
     article_title: string | null
     article_sentiment_label: string | null
     article_sentiment_score: number | null
+    article_processed_at: string | null
+    article_uuid: string | null
     error_message: string | null
     source: string | null
 }

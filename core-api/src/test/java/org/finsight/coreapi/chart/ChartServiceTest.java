@@ -63,6 +63,7 @@ class ChartServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getLatestArticles_ShouldReturnChartData() {
         Page<Article> page = new PageImpl<>(List.of(article));
         when(articleRepository.findAll(any(PageRequest.class))).thenReturn(page);
@@ -70,7 +71,15 @@ class ChartServiceTest {
         ChartDataResponse response = chartService.getLatestArticles(Map.of("limit", "5"));
 
         assertThat(response.getChartId()).isEqualTo("latest-articles");
-        assertThat((List<?>) response.getData()).hasSize(1);
+        List<?> dataList = (List<?>) response.getData();
+        assertThat(dataList).hasSize(1);
+
+        Map<String, Object> mappedArticle = (Map<String, Object>) dataList.get(0);
+        assertThat(mappedArticle.get("uuid")).isEqualTo(article.getUuid().toString());
+
+        List<Map<String, Object>> entities = (List<Map<String, Object>>) mappedArticle.get("entities");
+        assertThat(entities).hasSize(1);
+        assertThat(entities.get(0).get("uuid")).isEqualTo(entitySentiment.getUuid().toString());
     }
 
     @Test

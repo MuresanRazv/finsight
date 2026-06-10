@@ -519,6 +519,10 @@ export default function IngestionPage() {
                                                         item.completed_at ||
                                                         (item as any)
                                                             .completedAt
+                                                    const articleProcessedAt =
+                                                        item.article_processed_at ||
+                                                        (item as any)
+                                                            .articleProcessedAt
 
                                                     return (
                                                         <tr
@@ -640,38 +644,7 @@ export default function IngestionPage() {
                                                                 {item.status ===
                                                                 'COMPLETED' ? (
                                                                     <Link
-                                                                        href={{
-                                                                            pathname:
-                                                                                '/articles/deep-dive',
-                                                                            query: {
-                                                                                title:
-                                                                                    articleTitle ||
-                                                                                    '',
-                                                                                url: item.url,
-                                                                                source:
-                                                                                    item.source ||
-                                                                                    getSourceFromUrl(item.url),
-                                                                                sentiment_label:
-                                                                                    sentimentLabel ||
-                                                                                    'neutral',
-                                                                                sentiment_score:
-                                                                                    sentimentScore !==
-                                                                                        null &&
-                                                                                    sentimentScore !==
-                                                                                        undefined
-                                                                                        ? String(
-                                                                                              sentimentScore,
-                                                                                          )
-                                                                                        : '0',
-                                                                                published_at:
-                                                                                    getISOOrStringDate(
-                                                                                        completedAt ||
-                                                                                            createdAt,
-                                                                                    ),
-                                                                                entities:
-                                                                                    '[]',
-                                                                            },
-                                                                        }}
+                                                                        href={`/articles/deep-dive/${item.article_uuid}`}
                                                                         className='text-primary inline-flex items-center text-xs font-bold hover:underline'
                                                                     >
                                                                         Deep

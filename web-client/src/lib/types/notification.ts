@@ -14,5 +14,6 @@ export interface NotificationDto {
     article_overall_sentiment_score?: number | null
     article_overall_sentiment_label?: string | null
     article_entities?: EntitySentiment[] | null
+    article_uuid?: string | null
 }
 

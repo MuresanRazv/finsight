@@ -18,6 +18,10 @@ public class EntitySentiment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Builder.Default
+    @Column(name = "uuid", nullable = false, updatable = false)
+    private java.util.UUID uuid = java.util.UUID.randomUUID();
+
     private String name;
     private String ticker;
     private Double sentimentScore;

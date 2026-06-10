@@ -6,8 +6,7 @@ import { ArticleDto } from '@/lib/types/article'
 const API_URL = process.env.INTERNAL_API_URL || 'http://core-api:8080/api'
 
 export async function getArticleDetail(
-    url: string,
-    processedAt: string,
+    uuid: string,
 ): Promise<ArticleDto | null> {
     const session = await getSession()
     if (!session.token) {
@@ -15,13 +14,8 @@ export async function getArticleDetail(
     }
 
     try {
-        const queryString = new URLSearchParams({
-            url: url,
-            processed_at: processedAt,
-        }).toString()
-
         const response = await fetch(
-            `${API_URL}/articles/detail?${queryString}`,
+            `${API_URL}/articles/detail/${uuid}`,
             {
                 headers: {
                     Authorization: `Bearer ${session.token}`,
@@ -48,6 +42,7 @@ export interface TickerRelatedNewsItem {
     processed_at: string
     sentiment: 'positive' | 'neutral' | 'negative'
     sentiment_score: number
+    uuid?: string
 }
 
 export async function getTickerRelatedNews(

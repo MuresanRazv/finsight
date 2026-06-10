@@ -8,5 +8,6 @@ public record TickerRelatedNewsDto(
     String url,
     OffsetDateTime processedAt,
     String sentiment,
-    Double sentimentScore
+    Double sentimentScore,
+    java.util.UUID uuid
 ) {}

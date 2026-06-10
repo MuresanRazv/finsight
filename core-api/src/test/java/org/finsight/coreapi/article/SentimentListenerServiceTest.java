@@ -33,6 +33,8 @@ class SentimentListenerServiceTest {
     private NotificationRepository notificationRepository;
     @Mock
     private SimpMessagingTemplate messagingTemplate;
+    @Mock
+    private UserArticleProcessingRequestRepository processingRequestRepository;
 
     @InjectMocks
     private SentimentListenerService sentimentListenerService;
@@ -48,10 +50,11 @@ class SentimentListenerServiceTest {
                 "Test Source",
                 0.8,
                 "Positive",
-                List.of(new EntitySentimentDto("Apple Inc.", "AAPL", 0.9, "Positive")),
+                List.of(new EntitySentimentDto("Apple Inc.", "AAPL", 0.9, "Positive", java.util.UUID.randomUUID())),
                 "vector-123",
                 OffsetDateTime.now(),
-                null
+                null,
+                java.util.UUID.randomUUID()
         );
 
         user = User.builder()

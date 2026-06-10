@@ -70,7 +70,7 @@ public class SentimentListenerService {
             }
 
             // Update processing requests matching the URL to COMPLETED
-            updateProcessingRequests(message, "COMPLETED", null);
+            updateProcessingRequests(message, savedArticle.getUuid(), "COMPLETED", null);
 
         } catch (Exception e) {
             log.error("Failed to process and save sentiment message for URL: {}. Error: {}",
@@ -105,7 +105,7 @@ public class SentimentListenerService {
         }
     }
 
-    private void updateProcessingRequests(AnalyzedArticleDto message, String status, String errorMessage) {
+    private void updateProcessingRequests(AnalyzedArticleDto message, java.util.UUID articleUuid, String status, String errorMessage) {
         List<UserArticleProcessingRequest> requests = processingRequestRepository.findByUrlAndStatus(message.url(), "PENDING");
         if (!requests.isEmpty()) {
             log.info("Found {} pending processing requests for URL: {}", requests.size(), message.url());
@@ -115,6 +115,8 @@ public class SentimentListenerService {
                 req.setArticleTitle(message.title());
                 req.setArticleSentimentLabel(message.overallSentimentLabel());
                 req.setArticleSentimentScore(message.overallSentimentScore());
+                req.setArticleProcessedAt(message.processedAt());
+                req.setArticleUuid(articleUuid);
                 req.setErrorMessage(errorMessage);
                 processingRequestRepository.save(req);
             }
@@ -187,7 +189,8 @@ public class SentimentListenerService {
                 sentiments.stream().map(this::toDto).collect(Collectors.toList()),
                 article.getSemanticVectorId(),
                 article.getProcessedAt(),
-                null
+                null,
+                article.getUuid()
         );
     }
 
@@ -196,7 +199,8 @@ public class SentimentListenerService {
                 entity.getName(),
                 entity.getTicker(),
                 entity.getSentimentScore(),
-                entity.getSentimentLabel()
+                entity.getSentimentLabel(),
+                entity.getUuid()
         );
     }
 }

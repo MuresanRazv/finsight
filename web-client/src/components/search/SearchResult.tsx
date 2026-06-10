@@ -48,13 +48,7 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
                 <div className='flex items-start gap-2'>
                     <h3 className='text-foreground hover:text-primary cursor-pointer text-xl leading-tight font-semibold transition-colors'>
                         <Link
-                            href={{
-                                pathname: '/articles/deep-dive',
-                                query: {
-                                    url: result.url,
-                                    processed_at: result.published_at,
-                                },
-                            }}
+                            href={`/articles/deep-dive/${result.uuid}`}
                         >
                             {cleanedTitle}
                         </Link>

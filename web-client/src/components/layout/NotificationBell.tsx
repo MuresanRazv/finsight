@@ -37,6 +37,7 @@ export function NotificationBell() {
                     article_overall_sentiment_score: n.article_overall_sentiment_score !== undefined ? n.article_overall_sentiment_score : n.articleOverallSentimentScore,
                     article_overall_sentiment_label: n.article_overall_sentiment_label || n.articleOverallSentimentLabel || null,
                     article_entities: n.article_entities || n.articleEntities || null,
+                    article_uuid: n.article_uuid || n.articleUuid || null,
                 }))
                 setNotifications(normalized)
                 setUnreadCount(normalized.filter((n) => !n.is_read).length)
@@ -61,6 +62,7 @@ export function NotificationBell() {
                     article_overall_sentiment_score: message.article_overall_sentiment_score !== undefined ? message.article_overall_sentiment_score : message.articleOverallSentimentScore,
                     article_overall_sentiment_label: message.article_overall_sentiment_label || message.articleOverallSentimentLabel || null,
                     article_entities: message.article_entities || message.articleEntities || null,
+                    article_uuid: message.article_uuid || message.articleUuid || null,
                 }
             } else {
                 // Map AnalyzedArticleDto from public ticker topic
@@ -111,6 +113,7 @@ export function NotificationBell() {
                         message.overallSentimentLabel ||
                         'neutral',
                     article_entities: message.entities || null,
+                    article_uuid: message.uuid || message.article_uuid || message.articleUuid || null,
                 }
             }
 
@@ -325,14 +328,7 @@ export function NotificationBell() {
                                     <div className='relative z-20 mt-2 flex items-center justify-between gap-4'>
                                         <p className='truncate text-xs font-semibold'>
                                             <Link
-                                                href={`/articles/deep-dive?${new URLSearchParams(
-                                                    {
-                                                        url: notification.article_url,
-                                                        processed_at:
-                                                            notification.article_processed_at ||
-                                                            notification.created_at,
-                                                    },
-                                                ).toString()}`}
+                                                href={`/articles/deep-dive/${notification.article_uuid}`}
                                                 onClick={() => setIsOpen(false)}
                                                 className='inline-flex items-center gap-1 text-blue-400 hover:underline'
                                             >

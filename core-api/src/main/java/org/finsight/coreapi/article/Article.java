@@ -24,6 +24,10 @@ public class Article {
     @Column(name = "processed_at", nullable = false)
     private OffsetDateTime processedAt;
 
+    @Builder.Default
+    @Column(name = "uuid", nullable = false, updatable = false)
+    private java.util.UUID uuid = java.util.UUID.randomUUID();
+
     private String title;
     private Double overallSentimentScore;
     private String overallSentimentLabel;

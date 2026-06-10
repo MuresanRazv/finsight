@@ -39,11 +39,13 @@ public class ChartService {
             map.put("processed_at", article.getProcessedAt());
             map.put("overall_sentiment_score", article.getOverallSentimentScore());
             map.put("overall_sentiment_label", article.getOverallSentimentLabel());
+            map.put("uuid", article.getUuid() != null ? article.getUuid().toString() : null);
             map.put("entities", article.getEntities().stream().map(e -> {
                 Map<String, Object> entityMap = new HashMap<>();
                 entityMap.put("ticker", e.getTicker());
                 entityMap.put("sentiment_score", e.getSentimentScore());
                 entityMap.put("name", e.getName());
+                entityMap.put("uuid", e.getUuid() != null ? e.getUuid().toString() : null);
                 return entityMap;
             }).collect(Collectors.toList()));
             return map;

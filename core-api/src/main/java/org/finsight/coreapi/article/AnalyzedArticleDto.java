@@ -12,6 +12,7 @@ public record AnalyzedArticleDto(
         List<EntitySentimentDto> entities,
         String semanticVectorId,
         OffsetDateTime processedAt,
-        Integer requestedByUserId
+        Integer requestedByUserId,
+        java.util.UUID uuid
 ) {
 }

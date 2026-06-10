@@ -50,4 +50,10 @@ public class UserArticleProcessingRequest {
 
     @Column(name = "source")
     private String source;
+
+    @Column(name = "article_processed_at")
+    private OffsetDateTime articleProcessedAt;
+
+    @Column(name = "article_uuid")
+    private java.util.UUID articleUuid;
 }
