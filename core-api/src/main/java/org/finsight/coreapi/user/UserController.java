@@ -20,13 +20,13 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
         User user = userService.getUserById(id);
-        return ResponseEntity.ok(new UserDto(user.getFirstname(), user.getLastname(), user.getEmail()));
+        return ResponseEntity.ok(new UserDto(user.getFirstname(), user.getLastname(), user.getEmail(), user.getRole()));
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userService.getUserByEmail(userDetails.getUsername());
-        return ResponseEntity.ok(new UserDto(user.getFirstname(), user.getLastname(), user.getEmail()));
+        return ResponseEntity.ok(new UserDto(user.getFirstname(), user.getLastname(), user.getEmail(), user.getRole()));
     }
 
     @PutMapping("/me")

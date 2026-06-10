@@ -81,7 +81,7 @@ class UserServiceTest {
 
     @Test
     void updateUser_ShouldUpdateUser_WhenUserExists() {
-        UserDto userDto = new UserDto("Jane", "Smith", "jane.smith@example.com");
+        UserDto userDto = new UserDto("Jane", "Smith", "jane.smith@example.com", Role.USER);
         when(userRepository.findByEmail("john.doe@example.com")).thenReturn(Optional.of(user));
 
         userService.updateUser("john.doe@example.com", userDto);
