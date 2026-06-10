@@ -20,6 +20,7 @@ import {
     markAllAsRead,
 } from '@/app/actions/notifications'
 import { NotificationDto } from '@/lib/types/notification'
+import { cleanArticleTitle } from '@/lib/utils'
 
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<NotificationDto[]>([])
@@ -33,7 +34,11 @@ export function NotificationBell() {
             if (data && Array.isArray(data)) {
                 const normalized = data.map((n: any) => ({
                     ...n,
-                    article_title: n.article_title || n.articleTitle || null,
+                    article_title: cleanArticleTitle(
+                        n.article_title || n.articleTitle || '',
+                        n.source,
+                        n.article_url || n.articleUrl,
+                    ),
                     article_overall_sentiment_score: n.article_overall_sentiment_score !== undefined ? n.article_overall_sentiment_score : n.articleOverallSentimentScore,
                     article_overall_sentiment_label: n.article_overall_sentiment_label || n.articleOverallSentimentLabel || null,
                     article_entities: n.article_entities || n.articleEntities || null,
@@ -58,7 +63,11 @@ export function NotificationBell() {
             if (message.id !== undefined) {
                 notification = {
                     ...(message as NotificationDto),
-                    article_title: message.article_title || message.articleTitle || null,
+                    article_title: cleanArticleTitle(
+                        message.article_title || message.articleTitle || '',
+                        message.source,
+                        message.article_url || message.articleUrl || message.url,
+                    ),
                     article_overall_sentiment_score: message.article_overall_sentiment_score !== undefined ? message.article_overall_sentiment_score : message.articleOverallSentimentScore,
                     article_overall_sentiment_label: message.article_overall_sentiment_label || message.articleOverallSentimentLabel || null,
                     article_entities: message.article_entities || message.articleEntities || null,
@@ -103,7 +112,11 @@ export function NotificationBell() {
                     is_read: false,
                     created_at: new Date().toISOString(),
                     source: message.source || null,
-                    article_title: message.title || null,
+                    article_title: cleanArticleTitle(
+                        message.title || '',
+                        message.source || null,
+                        message.url,
+                    ),
                     article_overall_sentiment_score:
                         message.overall_sentiment_score !== undefined
                             ? message.overall_sentiment_score

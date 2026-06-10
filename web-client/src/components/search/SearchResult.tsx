@@ -47,11 +47,17 @@ function SearchResultCard({ result }: { result: SearchResultItem }) {
             <div className='flex-1 space-y-3'>
                 <div className='flex items-start gap-2'>
                     <h3 className='text-foreground hover:text-primary cursor-pointer text-xl leading-tight font-semibold transition-colors'>
-                        <Link
-                            href={`/articles/deep-dive/${result.uuid}`}
-                        >
-                            {cleanedTitle}
-                        </Link>
+                        {result.uuid ? (
+                            <Link
+                                href={`/articles/deep-dive/${result.uuid}`}
+                            >
+                                {cleanedTitle}
+                            </Link>
+                        ) : (
+                            <span className='opacity-70 cursor-not-allowed' title='Deep dive analysis not available'>
+                                {cleanedTitle}
+                            </span>
+                        )}
                     </h3>
                     <a
                         href={result.url}

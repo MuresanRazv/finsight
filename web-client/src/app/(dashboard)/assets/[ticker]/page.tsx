@@ -26,6 +26,7 @@ import {
 import { getUserSettings, updateUserSettings } from '@/app/actions/settings'
 import { getTickerRelatedNews, TickerRelatedNewsItem } from '@/app/actions/articles'
 import { formatDistanceToNow } from 'date-fns'
+import { cleanArticleTitle } from '@/lib/utils'
 
 import { getMyTickers } from '@/app/actions/charts'
 
@@ -865,7 +866,7 @@ export default function TickerPage({
                                             </span>
                                         </div>
                                         <h4 className='text-foreground group-hover:text-primary mb-2 text-sm leading-snug font-bold transition-colors line-clamp-2'>
-                                            {item.title}
+                                            {cleanArticleTitle(item.title, item.source, item.url)}
                                         </h4>
                                         <div className='text-muted-foreground flex items-center justify-between text-[10px] font-semibold'>
                                             <span className='flex items-center gap-1'>

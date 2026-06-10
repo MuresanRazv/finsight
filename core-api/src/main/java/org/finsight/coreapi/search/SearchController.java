@@ -48,18 +48,33 @@ public class SearchController {
             
             List<Map<String, Object>> results = objectMapper.readValue(responseBody, new TypeReference<List<Map<String, Object>>>() {});
             for (Map<String, Object> item : results) {
-                try {
-                    String itemUrl = (String) item.get("url");
+                String itemUrl = (String) item.get("url");
+                if (itemUrl != null) {
+                    Optional<Article> articleOpt = Optional.empty();
                     String publishedAtStr = (String) item.get("published_at");
-                    if (itemUrl != null && publishedAtStr != null) {
-                        OffsetDateTime processedAt = OffsetDateTime.parse(publishedAtStr);
-                        Optional<Article> articleOpt = articleRepository.findByUrlAndProcessedAt(itemUrl, processedAt);
-                        if (articleOpt.isPresent()) {
-                            item.put("uuid", articleOpt.get().getUuid().toString());
+                    if (publishedAtStr != null && !publishedAtStr.isEmpty()) {
+                        try {
+                            OffsetDateTime processedAt = OffsetDateTime.parse(publishedAtStr);
+                            articleOpt = articleRepository.findByUrlAndProcessedAt(itemUrl, processedAt);
+                        } catch (Exception ex) {
+                            log.debug("OffsetDateTime parse or query failed for: {} at {}", itemUrl, publishedAtStr, ex);
                         }
                     }
-                } catch (Exception ex) {
-                    log.warn("Failed to lookup UUID for search item: {}", ex.getMessage());
+                    
+                    // Fallback to searching by URL only if not found by exact processed_at
+                    if (articleOpt.isEmpty()) {
+                        try {
+                            articleOpt = articleRepository.findFirstByUrl(itemUrl);
+                        } catch (Exception ex) {
+                            log.warn("Failed to find article by URL: {}", itemUrl, ex);
+                        }
+                    }
+                    
+                    if (articleOpt.isPresent()) {
+                        item.put("uuid", articleOpt.get().getUuid().toString());
+                    } else {
+                        log.warn("No article found in database for search result URL: {}", itemUrl);
+                    }
                 }
             }
                     

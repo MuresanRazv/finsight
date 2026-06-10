@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { getUserSettings, updateUserSettings } from '@/app/actions/settings'
 import { getArticleDetail, getTickerRelatedNews, TickerRelatedNewsItem } from '@/app/actions/articles'
+import { cleanArticleTitle } from '@/lib/utils'
 import {
     ArrowLeft,
     TrendingUp,
@@ -172,10 +173,11 @@ function ArticleDeepDiveContent({
                     const sentimentLabel = data.overall_sentiment_label || 'neutral'
                     const sentimentScoreNum = data.overall_sentiment_score || 0.5
 
+                    const sourceVal = data.source || getSourceFromUrl(data.url) || 'FinSight'
                     setDbArticle({
-                        title: data.title,
+                        title: cleanArticleTitle(data.title, sourceVal, data.url),
                         url: data.url,
-                        source: data.source || getSourceFromUrl(data.url) || 'FinSight',
+                        source: sourceVal,
                         published_at: data.processed_at,
                         sentiment_score: sentimentScoreNum,
                         sentiment_label: sentimentLabel,
@@ -238,19 +240,29 @@ function ArticleDeepDiveContent({
                     })
                 }
 
-                // Sort timeline chronologically (ascending)
+                // Sort timeline chronologically (ascending) and clean titles
                 timeline.sort((a, b) => new Date(a.processed_at).getTime() - new Date(b.processed_at).getTime())
-                setSentimentTimeline(timeline)
+                setSentimentTimeline(
+                    timeline.map((item) => ({
+                        ...item,
+                        title: cleanArticleTitle(item.title, item.source, item.url),
+                    }))
+                )
             } catch (err) {
                 console.error('Failed to load sentiment correlation data', err)
                 // Fallback mock data if the call fails
-                setSentimentTimeline([
+                const mockTimeline: TickerRelatedNewsItem[] = [
                     { title: 'NVDA reports record revenue', source: 'Reuters', url: '1', processed_at: new Date(Date.now() - 3 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.95 },
                     { title: 'Analysts warn of NVDA valuation', source: 'Bloomberg', url: '2', processed_at: new Date(Date.now() - 2 * 86400 * 1000).toISOString(), sentiment: 'neutral', sentiment_score: 0.5 },
                     { title: article.title, source: article.source, url: article.url, processed_at: article.published_at, sentiment: article.sentiment_label as 'positive' | 'neutral' | 'negative', sentiment_score: article.sentiment_score },
                     { title: 'NVDA launches next-gen Blackwell chips', source: 'TechCrunch', url: '4', processed_at: new Date(Date.now() + 1 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.88 },
                     { title: 'Global chip demand remains strong', source: 'WSJ', url: '5', processed_at: new Date(Date.now() + 2 * 86400 * 1000).toISOString(), sentiment: 'positive', sentiment_score: 0.72 }
-                ])
+                ].map((item) => ({
+                    ...item,
+                    sentiment: item.sentiment as 'positive' | 'neutral' | 'negative',
+                    title: cleanArticleTitle(item.title, item.source, item.url),
+                }))
+                setSentimentTimeline(mockTimeline)
             } finally {
                 setChartLoading(false)
             }
