@@ -1,0 +1,220 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------
+  # Traefik Reverse Proxy (Handles SSL/TLS & Routing)
+  # -------------------------------------------------------------
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      # Enable API and Dashboard (kept internal, no router rule)
+      - "--api.dashboard=true"
+      # Docker Provider Configuration
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # Define Entrypoints
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Global HTTP -> HTTPS Redirection
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Let's Encrypt Certificate Resolver Config (HTTP-01 challenge)
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "traefik_certificates:/letsencrypt"
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # Database Layer (Internal - No Ports Exposed)
+  # -------------------------------------------------------------
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: sentiment_db_prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-sentiment_hub}
+    volumes:
+      - timescaledb_data_prod:/var/lib/postgresql/data
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # Message Broker (Internal - No Ports Exposed)
+  # -------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: sentiment_queue_prod
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data_prod:/var/lib/rabbitmq
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # Cache Layer (Internal - No Ports Exposed)
+  # -------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: sentiment_cache_prod
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # Vector Database (Internal - No Ports Exposed)
+  # -------------------------------------------------------------
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: sentiment_vector_db_prod
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chroma_data_prod:/chroma/data
+    networks:
+      - backend_network
+    restart: unless-stopped
+
+  # -------------------------------------------------------------
+  # NLP Engine Services
+  # -------------------------------------------------------------
+  nlp-api:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_api_prod
+    depends_on:
+      - rabbitmq
+      - redis
+      - chromadb
+    networks:
+      - backend_network
+    env_file:
+      - .env.prod
+    # Run uvicorn without --reload flag in production
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  nlp-worker:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_worker_prod
+    depends_on:
+      - rabbitmq
+      - redis
+      - chromadb
+    networks:
+      - backend_network
+    env_file:
+      - .env.prod
+    command: celery -A workers.celery_app worker --loglevel=info --concurrency=2
+    restart: unless-stopped
+    
+  nlp-ingestor:
+    build:
+      context: ./nlp-engine
+      dockerfile: Dockerfile
+    container_name: nlp_ingestor_prod
+    depends_on:
+      - rabbitmq
+    networks:
+      - backend_network
+    env_file:
+      - .env.prod
+    command: python -m ingestor.main
+    restart: on-failure
+
+  # -------------------------------------------------------------
+  # Core Spring Boot API (Routed via Traefik)
+  # -------------------------------------------------------------
+  core-api:
+    build:
+      context: ./core-api
+      dockerfile: Dockerfile
+    container_name: core_api_prod
+    depends_on:
+      - timescaledb
+      - rabbitmq
+    environment:
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-sentiment_hub}
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-guest}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-guest}
+      - NLP_API_URL=http://nlp-api:8000
+      - CORS_ALLOWED_ORIGINS=https://${DOMAIN_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=true"
+      # Route both /api and /ws-sentiment (WebSocket endpoints) to the core-api container
+      - "traefik.http.routers.core-api.rule=Host(`${DOMAIN_NAME}`) && (PathPrefix(`/api`) || PathPrefix(`/ws-sentiment`))"
+      - "traefik.http.routers.core-api.entrypoints=websecure"
+      - "traefik.http.routers.core-api.tls.certresolver=myresolver"
+      - "traefik.http.services.core-api.loadbalancer.server.port=8080"
+    restart: unless-stopped
+  
+  # -------------------------------------------------------------
+  # Next.js Frontend Client (Routed via Traefik)
+  # -------------------------------------------------------------
+  web-client:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+      args:
+        # Baked into Next.js bundle at build time
+        - NEXT_PUBLIC_WS_URL=wss://${DOMAIN_NAME}/ws-sentiment
+        - NEXT_PUBLIC_API_URL=https://${DOMAIN_NAME}/api
+    container_name: web_client_prod
+    depends_on:
+      - core-api
+    environment:
+      # Used on server-side Next.js Node container
+      - INTERNAL_API_URL=http://core-api:8080/api
+      - FINNHUB_API_KEY=${FINNHUB_API_KEY}
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=true"
+      # Route all other root requests to the Next.js frontend
+      - "traefik.http.routers.web-client.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.web-client.entrypoints=websecure"
+      - "traefik.http.routers.web-client.tls.certresolver=myresolver"
+      - "traefik.http.services.web-client.loadbalancer.server.port=3000"
+    restart: unless-stopped
+
+# Named volumes for production persistency
+volumes:
+  timescaledb_data_prod:
+  rabbitmq_data_prod:
+  redis_data_prod:
+  chroma_data_prod:
+  # redisinsight_data_prod:
+  traefik_certificates:
+
+# Shared production bridge network
+networks:
+  backend_network:
+    driver: bridge
