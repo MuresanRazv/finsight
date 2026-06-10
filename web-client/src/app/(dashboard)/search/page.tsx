@@ -244,7 +244,7 @@ export default function SearchPage() {
                     </div>
 
                     {/* Suggested Searches Grid */}
-                    <div className='grid w-full grid-cols-1 gap-4 md:grid-cols-3'>
+                    <div data-tour='search-suggestions' className='grid w-full grid-cols-1 gap-4 md:grid-cols-3'>
                         {suggestedSearches.map((item, index) => {
                             const Icon = item.icon
                             return (
@@ -266,6 +266,7 @@ export default function SearchPage() {
 
             {/* Search Input Area */}
             <div
+                data-tour='search-input'
                 className={`relative mb-12 w-full ${searchHasSearched ? 'mt-0' : ''}`}
             >
                 <Form {...form}>

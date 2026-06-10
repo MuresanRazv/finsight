@@ -45,7 +45,7 @@ export function TopNav() {
             </div>
 
             {/* Right side: Controls */}
-            <div className='flex items-center space-x-6'>
+            <div data-tour='top-controls' className='flex items-center space-x-6'>
                 {/* Search/Chat Toggle Switch */}
                 {isSearchOrChat && (
                     <div className='border-border bg-surface-container flex items-center rounded-full border p-1'>

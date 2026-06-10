@@ -267,7 +267,7 @@ export default function IngestionPage() {
             <div className='grid grid-cols-1 gap-8 lg:grid-cols-12'>
                 {/* Manual Ingestion Form */}
                 <div className='lg:col-span-5'>
-                    <div className='border-border bg-card rounded-xl border p-6 shadow-md'>
+                    <div data-tour='ingest-form' className='border-border bg-card rounded-xl border p-6 shadow-md'>
                         <h2 className='mb-4 flex items-center gap-2 text-lg font-bold'>
                             <PlusCircle className='text-primary h-5 w-5' />
                             Process New Articles

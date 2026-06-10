@@ -4,6 +4,8 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { TopNav } from '@/components/layout/TopNav'
 import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
 import { SearchStateProvider } from '@/components/providers/SearchStateProvider'
+import { OnboardingTour } from '@/components/layout/OnboardingTour'
+import { Footer } from '@/components/layout/Footer'
 import { getSession } from '@/lib/session'
 import React from 'react'
 
@@ -22,7 +24,10 @@ export default async function DashboardLayout({
                     <div className='relative flex flex-1 flex-col overflow-hidden'>
                         <TopNav />
                         <main className='relative z-10 flex flex-1 flex-col overflow-y-auto px-8 pt-16'>
-                            {children}
+                            <div className='flex-1 flex flex-col'>
+                                {children}
+                            </div>
+                            <Footer />
                             {/* Subtle Background Gradient Effect */}
                             <div
                                 className='pointer-events-none absolute inset-0 -z-10'
@@ -34,6 +39,7 @@ export default async function DashboardLayout({
                         </main>
                     </div>
                 </div>
+                <OnboardingTour session={session.user} />
             </SearchStateProvider>
         </WebSocketProvider>
     )

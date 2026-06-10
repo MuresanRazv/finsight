@@ -129,6 +129,7 @@ export default function ChatPage() {
 
             {/* Search Input Area */}
             <div
+                data-tour='chat-input'
                 className={`relative mb-12 w-full ${chatHasSearched ? 'mt-0' : ''}`}
             >
                 <Form {...form}>

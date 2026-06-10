@@ -47,7 +47,7 @@ export async function proxy(request: NextRequest) {
         }
     }
 
-    if (!session.user) {
+    if (!session.user || !session.user.role) {
         await updateUserSession()
     }
 

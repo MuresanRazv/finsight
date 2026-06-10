@@ -6,6 +6,7 @@ export type SessionUser = {
     firstname: string
     lastname: string
     email: string
+    role?: 'USER' | 'ADMIN'
 }
 
 export type SessionData = {

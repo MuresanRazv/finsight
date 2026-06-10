@@ -327,6 +327,28 @@ export default function SettingsPage() {
                         </Form>
                     </CardContent>
                 </Card>
+
+                {/* Onboarding & Help */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Platform Walkthrough</CardTitle>
+                        <CardDescription>
+                            Need a refresher on how to navigate or use FinSight?
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            variant='outline'
+                            type='button'
+                            onClick={() => {
+                                window.dispatchEvent(new CustomEvent('finsight_restart_onboarding'))
+                                toast.success('Launching introduction walkthrough...')
+                            }}
+                        >
+                            Restart Onboarding Tour
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )

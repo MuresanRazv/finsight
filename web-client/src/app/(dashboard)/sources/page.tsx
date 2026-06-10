@@ -254,7 +254,7 @@ export default function RssSourcesPage() {
     }
 
     return (
-        <div className='dark mx-auto min-h-screen max-w-6xl p-6 text-slate-100'>
+        <div data-tour='sources-content' className='dark mx-auto min-h-screen max-w-6xl p-6 text-slate-100'>
             {/* Header section */}
             <div className='border-border/50 mb-8 flex flex-col justify-between gap-4 border-b pb-6 md:flex-row md:items-center'>
                 <div>
