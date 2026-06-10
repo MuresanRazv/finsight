@@ -86,8 +86,9 @@ async def search_news(
         # Generate embedding for the query
         query_embedding = ml_service.generate_embedding(query)
         
-        # Query ChromaDB
-        results = chroma_service.query_documents(query_embedding, n_results=limit)
+        # Query ChromaDB with a higher limit to allow deduplication of chunks from same article
+        query_limit = limit * 3
+        results = chroma_service.query_documents(query_embedding, n_results=query_limit)
         
         search_results = []
         if results and results.get('ids') and len(results['ids']) > 0:
@@ -95,8 +96,14 @@ async def search_news(
             metadatas = results['metadatas'][0]
             distances = results['distances'][0]
             
+            seen_urls = set()
             for i, doc_id in enumerate(ids):
                 metadata = metadatas[i]
+                url = metadata.get("url", "Unknown URL")
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                
                 distance = distances[i]
                 
                 # Convert distance to relevance score (simple inversion for now)
@@ -112,7 +119,7 @@ async def search_news(
                     entities = []
                 
                 search_results.append(SearchResult(
-                    url=metadata.get("url", "Unknown URL"),
+                    url=url,
                     title=metadata.get("title", "Unknown Title"),
                     source=metadata.get("source", "Unknown Source"),
                     published_at=metadata.get("published_at", ""),
@@ -121,6 +128,9 @@ async def search_news(
                     relevance_score=relevance_score,
                     entities=entities
                 ))
+                
+                if len(search_results) >= limit:
+                    break
                 
         return search_results
         
