@@ -137,8 +137,8 @@ async def chat_endpoint(request: ChatRequest):
         # Convert the query into a vector
         query_embedding = ml_service.generate_embedding(request.query)
 
-        # Query ChromaDB for top 5 documents
-        results = chroma_service.query_documents(query_embedding, n_results=5)
+        # Query ChromaDB for top results based on config
+        results = chroma_service.query_documents(query_embedding, n_results=settings.RAG_MAX_RESULTS)
         
         # Extract raw text and join into context
         context_docs = []
@@ -147,8 +147,11 @@ async def chat_endpoint(request: ChatRequest):
         if results and results.get('documents') and len(results['documents']) > 0:
             context_docs = results['documents'][0]
             metadatas = results['metadatas'][0]
-            # Collect source URLs and filter out None
-            source_urls = [meta.get("url") for meta in metadatas if meta and "url" in meta]
+            
+            # Collect source URLs, filter out None, and deduplicate preserving order
+            raw_urls = [meta.get("url") for meta in metadatas if meta and "url" in meta]
+            seen_urls = set()
+            source_urls = [url for url in raw_urls if not (url in seen_urls or seen_urls.add(url))]
             
         context = "\n\n".join(context_docs)
 
@@ -186,6 +189,7 @@ async def process_article(req: ProcessRequest):
             import requests
             from bs4 import BeautifulSoup
             from urllib.parse import urlparse
+            from services.article_scraper import get_article_scraper
             
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -202,9 +206,15 @@ async def process_article(req: ProcessRequest):
             
             # extract text
             if not text:
-                # get all paragraphs
-                paragraphs = soup.find_all("p")
-                text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
+                # Try to use ArticleScraper first
+                scraper = get_article_scraper()
+                text = scraper.scrape(req.url)
+                
+                # Fallback to paragraphs if scraper failed or returned empty
+                if not text or not text.strip():
+                    logger.info(f"ArticleScraper failed for {req.url}, falling back to paragraphs BeautifulSoup extraction.")
+                    paragraphs = soup.find_all("p")
+                    text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
                 
             if not source:
                 domain = urlparse(req.url).netloc
@@ -280,6 +290,7 @@ async def process_articles_bulk(req: BulkProcessRequest):
             import requests
             from bs4 import BeautifulSoup
             from urllib.parse import urlparse
+            from services.article_scraper import get_article_scraper
             
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -294,8 +305,14 @@ async def process_articles_bulk(req: BulkProcessRequest):
             title = title_tag.text.strip() if title_tag else "Manual Article"
             
             # extract text
-            paragraphs = soup.find_all("p")
-            text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
+            scraper = get_article_scraper()
+            text = scraper.scrape(url_cleaned)
+            
+            # Fallback to paragraphs if scraper failed or returned empty
+            if not text or not text.strip():
+                logger.info(f"ArticleScraper failed for {url_cleaned} in bulk process, falling back to paragraphs BeautifulSoup extraction.")
+                paragraphs = soup.find_all("p")
+                text = " ".join([p.text.strip() for p in paragraphs if p.text.strip()])
             
             domain = urlparse(url_cleaned).netloc
             source = domain.replace("www.", "") or "Manual Ingest"

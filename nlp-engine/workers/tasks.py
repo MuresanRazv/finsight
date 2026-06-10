@@ -64,6 +64,20 @@ def analyze_sentiment(**news_item_data):
             else:
                 return
 
+        # Attempt to scrape the complete article content using the ArticleScraper
+        if news_item.url:
+            try:
+                from services.article_scraper import get_article_scraper
+                scraper = get_article_scraper()
+                full_text = scraper.scrape(news_item.url)
+                if full_text:
+                    logger.info(f"Successfully scraped full article content for: {news_item.url}")
+                    news_item.text = full_text
+                else:
+                    logger.info(f"Could not scrape full article content for: {news_item.url}. Falling back to description.")
+            except Exception as scrape_err:
+                logger.warning(f"Error attempting to scrape full article for {news_item.url}: {scrape_err}. Falling back to description.")
+
         # Extract entities and their sentiment
         entity_sentiments_data = ml_service.extract_entity_sentiments(news_item.text)
         
@@ -73,28 +87,41 @@ def analyze_sentiment(**news_item_data):
         # Run FinBERT on the whole text for overall sentiment
         overall_sentiment = ml_service.analyze_sentiment(news_item.text)
 
-        # Pass the raw article text through the all-MiniLM-L6-v2 model to generate the embedding array
-        # (Truncate the text if it exceeds the model's token limit - handled by the model/library usually, but good to be aware)
-        embedding = ml_service.generate_embedding(news_item.text)
-        
         # Prepare entities for ChromaDB metadata (serialize to JSON string)
         entities_json_str = json.dumps([e.model_dump() for e in entities])
 
-        # Upsert the generated embedding into the financial_articles ChromaDB collection
-        chroma_service.add_document(
-            document_id=news_item.url,
-            text=news_item.text,
-            embedding=embedding,
-            metadata={
-                "url": news_item.url,
-                "published_at": news_item.published_at.isoformat(),
-                "source": news_item.source,
-                "title": news_item.title,
-                "sentiment_label": overall_sentiment["label"],
-                "sentiment_score": overall_sentiment["score"],
-                "entities": entities_json_str
-            }
-        )
+        # Delete any existing chunks for this article in ChromaDB to prevent orphaned/duplicate chunks
+        try:
+            chroma_service.collection.delete(where={"url": news_item.url})
+            logger.info(f"Deleted existing chunks for {news_item.url} from ChromaDB")
+        except Exception as delete_err:
+            logger.debug(f"No existing chunks found to delete for {news_item.url}: {delete_err}")
+
+        # Chunk the text and generate embeddings for each chunk
+        from services.article_scraper import chunk_text
+        chunks = chunk_text(news_item.text, chunk_size=1000, chunk_overlap=200)
+        logger.info(f"Splitting article {news_item.url} into {len(chunks)} chunks for indexing")
+        
+        for idx, chunk in enumerate(chunks):
+            chunk_id = f"{news_item.url}_chunk_{idx}"
+            chunk_embedding = ml_service.generate_embedding(chunk)
+            
+            # Upsert the chunk embedding into the financial_articles ChromaDB collection
+            chroma_service.add_document(
+                document_id=chunk_id,
+                text=chunk,
+                embedding=chunk_embedding,
+                metadata={
+                    "url": news_item.url,
+                    "published_at": news_item.published_at.isoformat(),
+                    "source": news_item.source,
+                    "title": news_item.title,
+                    "sentiment_label": overall_sentiment["label"],
+                    "sentiment_score": overall_sentiment["score"],
+                    "entities": entities_json_str,
+                    "chunk_index": idx
+                }
+            )
 
         analyzed_article = AnalyzedArticle(
             url=news_item.url,

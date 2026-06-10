@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # RAG
     LLM_HOST: str = Field('http://host.docker.internal:11434', env='LLM_HOST')
     LLM_MODEL: str = Field('qwen3:8b', env='LLM_MODEL')
+    RAG_MAX_RESULTS: int = Field(5, env="RAG_MAX_RESULTS")
+    RAG_MAX_PARAGRAPHS_PER_DOC: int = Field(2, env="RAG_MAX_PARAGRAPHS_PER_DOC")
+    RAG_MAX_CHARS_PER_DOC: int = Field(2000, env="RAG_MAX_CHARS_PER_DOC")
 
     # Gemini
     USE_GEMINI: bool = Field(False, env='USE_GEMINI')
