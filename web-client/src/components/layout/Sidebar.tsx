@@ -13,6 +13,7 @@ import {
     Plus,
     PlusCircle,
     Rss,
+    Activity,
 } from 'lucide-react'
 import { SessionUser } from '@/lib/session'
 
@@ -41,11 +42,23 @@ const mainRoutes = [
         label: 'RSS Feeds',
         icon: Rss,
         href: '/sources',
+        isAdminOnly: true,
+    },
+    {
+        label: 'Observability',
+        icon: Activity,
+        href: '/metrics',
+        isAdminOnly: true,
     },
 ]
 
+
 export function Sidebar({ session }: { session?: SessionUser }) {
     const pathname = usePathname()
+
+    const filteredRoutes = mainRoutes.filter(
+        (route) => !route.isAdminOnly || session?.role === 'ADMIN',
+    )
 
     return (
         <aside className='border-border bg-sidebar hidden w-64 shrink-0 flex-col justify-between border-r px-4 py-6 md:flex'>
@@ -67,8 +80,8 @@ export function Sidebar({ session }: { session?: SessionUser }) {
                 </div>
 
                 {/* Navigation Links */}
-                <nav className='space-y-1.5 px-2'>
-                    {mainRoutes.map((route) => {
+                <nav data-tour='sidebar-nav' className='space-y-1.5 px-2'>
+                    {filteredRoutes.map((route) => {
                         const isActive = pathname === route.href
                         return (
                             <Link
