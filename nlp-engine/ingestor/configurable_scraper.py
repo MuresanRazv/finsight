@@ -6,6 +6,7 @@ from typing import List
 
 from ingestor.base_scraper import NewsScraper
 from models.schemas import FinancialNewsItem
+from services.metrics_service import benchmark_action
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,16 @@ class ConfigurableRSSScraper(NewsScraper):
         self.pub_date_selector = config.get("pub_date_selector") or "pubDate"
         self.pub_date_format = config.get("pub_date_format")
 
+    @benchmark_action(
+        "rss_scrape",
+        article_count_extractor=lambda args, kwargs, result: len(result) if isinstance(result, list) else 0,
+        metadata_extractor=lambda args, kwargs, result: {
+            "source_name": args[0].source_name,
+            "url": args[0].url
+        } if args else {}
+    )
     def scrape(self) -> List[FinancialNewsItem]:
+
         """
         Fetches the feed, parses the document with BeautifulSoup, and maps elements to FinancialNewsItems.
         """

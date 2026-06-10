@@ -3,8 +3,10 @@ from sentence_transformers import SentenceTransformer
 import logging
 import spacy
 from typing import List, Dict, Any
+from services.metrics_service import benchmark_action
 
 logger = logging.getLogger(__name__)
+
 
 # Hardcoded ticker mapping for MVP
 TICKER_MAPPING = {
@@ -61,6 +63,13 @@ class MLService:
             
         logger.info("ML models loaded successfully")
 
+    @benchmark_action(
+        "ml_sentiment_inference",
+        metadata_extractor=lambda args, kwargs, result: {
+            "text_length": len(args[1]) if len(args) > 1 else (len(kwargs.get("text")) if "text" in kwargs else 0),
+            "sentiment": result.get("label") if result else None
+        }
+    )
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """
         Analyzes the sentiment of the given text using FinBERT.
@@ -73,6 +82,12 @@ class MLService:
             "score": result['score']
         }
 
+    @benchmark_action(
+        "ml_embedding_inference",
+        metadata_extractor=lambda args, kwargs, result: {
+            "text_length": len(args[1]) if len(args) > 1 else (len(kwargs.get("text")) if "text" in kwargs else 0)
+        }
+    )
     def generate_embedding(self, text: str) -> List[float]:
         """
         Generates vector embedding for the given text using MiniLM.
@@ -82,6 +97,13 @@ class MLService:
         embedding = self.embedding_model.encode(text)
         return embedding.tolist()
 
+    @benchmark_action(
+        "ml_entity_inference",
+        metadata_extractor=lambda args, kwargs, result: {
+            "text_length": len(args[1]) if len(args) > 1 else (len(kwargs.get("text")) if "text" in kwargs else 0),
+            "entities_count": len(result) if isinstance(result, list) else 0
+        }
+    )
     def extract_entity_sentiments(self, text: str) -> List[Dict[str, Any]]:
         """
         Extracts entities, maps them to tickers, and calculates sentiment 
@@ -89,6 +111,7 @@ class MLService:
         """
         # Run NER
         ner_results = self.ner_pipeline(text)
+
         
         # Filter for ORG entities and deduplicate
         unique_entities = set()

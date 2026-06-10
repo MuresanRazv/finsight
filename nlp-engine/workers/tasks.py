@@ -7,13 +7,24 @@ from services.chroma_service import chroma_service
 from services.redis_service import redis_service
 import json
 import logging
+from services.metrics_service import benchmark_action
 import pika
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
 @shared_task(name="workers.tasks.analyze_sentiment")
+@benchmark_action(
+    "celery_task_process",
+    article_count_extractor=lambda args, kwargs, result: 1,
+    metadata_extractor=lambda args, kwargs, result: {
+        "url": kwargs.get("url"),
+        "source": kwargs.get("source"),
+        "title": kwargs.get("title")
+    }
+)
 def analyze_sentiment(**news_item_data):
+
     """
     Celery task to process raw financial news.
     """

@@ -5,6 +5,7 @@ import schedule
 from core.config import settings
 from workers.celery_app import celery_app
 from ingestor.sources import ALL_SCRAPERS
+from services.metrics_service import benchmark_action
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -35,12 +36,18 @@ def publish_news_items(news_items, source_name):
 
     logger.info(f"Successfully published {len(news_items)} articles from {source_name}.")
 
+@benchmark_action(
+    "automatic_ingest_cron",
+    article_count_extractor=lambda args, kwargs, result: result if isinstance(result, int) else 0,
+    metadata_extractor=lambda args, kwargs, result: {"success": True}
+)
 def fetch_and_publish_news():
     """
     Fetches news from active database-configured RSS sources and dispatches Celery tasks.
     Preconfigured default feeds use their specialized python scraper classes.
     """
     logger.info("Starting news scraping process...")
+    total_scraped = 0
 
     try:
         import requests
@@ -85,12 +92,17 @@ def fetch_and_publish_news():
                         
                     news_items = scraper.scrape()
                     publish_news_items(news_items, source_name)
+                    total_scraped += len(news_items)
                 except Exception as src_ex:
                     logger.error(f"Failed to scrape source '{source_name}': {src_ex}", exc_info=True)
+            return total_scraped
         else:
              logger.warning(f"Failed to fetch configured RSS sources: HTTP {response.status_code}")
+             return 0
     except Exception as e:
         logger.warning(f"Could not reach core-api to fetch active RSS configs: {e}")
+        return 0
+
 
 def main():
     """

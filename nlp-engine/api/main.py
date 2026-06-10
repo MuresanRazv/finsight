@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -7,8 +7,14 @@ from core.config import settings
 from services.ml_service import ml_service
 from services.chroma_service import chroma_service
 from models.schemas import EntitySentiment
+from services.metrics_service import benchmark_action, metrics_service
 import logging
 import json
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 
 from langchain_community.llms import Ollama
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -24,6 +30,19 @@ app = FastAPI(
     description="API for semantic search and sentiment analysis of financial news.",
     version="1.0.0"
 )
+
+# ---------------------------------------------------------------------------
+# Rate limiting — per-IP, in-memory token bucket via slowapi
+# Limits are tuned to each endpoint's computational cost:
+#   /search        → 60/min  (ChromaDB vector query, cheap)
+#   /api/chat      → 20/min  (LLM call, expensive)
+#   /api/process   → 30/min  (scrape + Celery task enqueue)
+#   /api/process/bulk → 10/min (multi-URL scrape, heaviest)
+#   /api/rss/test  → 20/min  (external HTTP + XML parse)
+# ---------------------------------------------------------------------------
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Initialize LLM
 if settings.USE_GEMINI:
@@ -75,7 +94,17 @@ async def health_check():
     return {"status": "ok"}
 
 @app.get("/search", response_model=List[SearchResult])
+@limiter.limit("60/minute")
+@benchmark_action(
+    "semantic_search",
+    metadata_extractor=lambda args, kwargs, result: {
+        "query": kwargs.get("query") or (args[0] if args else None),
+        "limit": kwargs.get("limit") or (args[1] if len(args) > 1 else None),
+        "results_count": len(result) if isinstance(result, list) else 0
+    }
+)
 async def search_news(
+    request: Request,
     query: str = Query(..., min_length=3, description="Search query for semantic search"),
     limit: int = Query(10, ge=1, le=50, description="Number of results to return")
 ):
@@ -139,13 +168,22 @@ async def search_news(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+@limiter.limit("20/minute")
+@benchmark_action(
+    "rag_chat",
+    metadata_extractor=lambda args, kwargs, result: {
+        "query": (kwargs.get("body").query if kwargs.get("body") else (args[0].query if args else None)),
+        "source_urls_count": len(result.source_urls) if result and hasattr(result, "source_urls") else (len(result.get("source_urls", [])) if isinstance(result, dict) else 0)
+    }
+)
+async def chat_endpoint(request: Request, body: ChatRequest):
+
     """
     RAG Endpoint for querying financial articles using an LLM.
     """
     try:
         # Convert the query into a vector
-        query_embedding = ml_service.generate_embedding(request.query)
+        query_embedding = ml_service.generate_embedding(body.query)
 
         # Query ChromaDB for top results based on config
         results = chroma_service.query_documents(query_embedding, n_results=settings.RAG_MAX_RESULTS)
@@ -167,7 +205,8 @@ async def chat_endpoint(request: ChatRequest):
 
         # Pass context and query to LangChain and LLM
         chain = rag_prompt | llm | StrOutputParser()
-        answer = chain.invoke({"context": context, "question": request.query})
+        answer = chain.invoke({"context": context, "question": body.query})
+
         
         # Return JSON response
         return ChatResponse(
@@ -186,7 +225,17 @@ class ProcessRequest(BaseModel):
     userId: Optional[int] = None
 
 @app.post("/api/process")
-async def process_article(req: ProcessRequest):
+@limiter.limit("30/minute")
+@benchmark_action(
+    "manual_single_ingest",
+    article_count_extractor=lambda args, kwargs, result: 1,
+    metadata_extractor=lambda args, kwargs, result: {
+        "url": (kwargs.get("req").url if kwargs.get("req") else (args[0].url if args else None)),
+        "userId": (kwargs.get("req").userId if kwargs.get("req") else (args[0].userId if args else None))
+    }
+)
+async def process_article(request: Request, req: ProcessRequest):
+
     logger.info(f"Received manual process request for URL: {req.url}")
     
     # 1. Scrape if text/title/source is missing
@@ -272,7 +321,17 @@ class BulkProcessRequest(BaseModel):
     userId: Optional[int] = None
 
 @app.post("/api/process/bulk")
-async def process_articles_bulk(req: BulkProcessRequest):
+@limiter.limit("10/minute")
+@benchmark_action(
+    "manual_bulk_ingest",
+    article_count_extractor=lambda args, kwargs, result: len(kwargs.get("req").urls) if kwargs.get("req") else (len(args[0].urls) if args else 0),
+    metadata_extractor=lambda args, kwargs, result: {
+        "urls_count": len(kwargs.get("req").urls) if kwargs.get("req") else (len(args[0].urls) if args else 0),
+        "userId": (kwargs.get("req").userId if kwargs.get("req") else (args[0].userId if args else None))
+    }
+)
+async def process_articles_bulk(request: Request, req: BulkProcessRequest):
+
     logger.info(f"Received manual bulk process request for {len(req.urls)} URLs")
     
     if not req.urls:
@@ -392,7 +451,8 @@ class TestRSSRequest(BaseModel):
     pubDateFormat: Optional[str] = None
 
 @app.post("/api/rss/test")
-async def test_rss_feed(req: TestRSSRequest):
+@limiter.limit("20/minute")
+async def test_rss_feed(request: Request, req: TestRSSRequest):
     logger.info(f"Testing RSS feed configuration for: {req.url}")
     
     config = {
@@ -440,6 +500,22 @@ async def test_rss_feed(req: TestRSSRequest):
             "message": f"Error occurred during fetching or parsing: {str(e)}",
             "articles": []
         }
+
+@app.get("/api/observability/metrics")
+async def get_observability_metrics():
+    """
+    Endpoint to retrieve gathered timing and performance benchmarks.
+    """
+    return metrics_service.get_all_metrics()
+
+@app.post("/api/observability/metrics/clear")
+async def clear_observability_metrics(action: Optional[str] = None):
+    """
+    Endpoint to clear execution statistics.
+    """
+    metrics_service.clear_metrics(action)
+    return {"status": "success", "message": f"Metrics cleared for: {action or 'all actions'}"}
+
 
 
 
