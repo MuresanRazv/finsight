@@ -50,6 +50,12 @@ services:
       - timescaledb_data_prod:/var/lib/postgresql/data
     networks:
       - backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-admin} -d $${POSTGRES_DB:-sentiment_hub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   # -------------------------------------------------------------
@@ -65,6 +71,12 @@ services:
       - rabbitmq_data_prod:/var/lib/rabbitmq
     networks:
       - backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   # -------------------------------------------------------------
@@ -79,6 +91,11 @@ services:
       - redis_data_prod:/data
     networks:
       - backend_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # -------------------------------------------------------------
@@ -93,6 +110,12 @@ services:
       - chroma_data_prod:/chroma/data
     networks:
       - backend_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   # -------------------------------------------------------------
@@ -104,15 +127,24 @@ services:
       dockerfile: Dockerfile
     container_name: nlp_api_prod
     depends_on:
-      - rabbitmq
-      - redis
-      - chromadb
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
     networks:
       - backend_network
     env_file:
       - .env.prod
     # Run uvicorn without --reload flag in production
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   nlp-worker:
@@ -121,14 +153,23 @@ services:
       dockerfile: Dockerfile
     container_name: nlp_worker_prod
     depends_on:
-      - rabbitmq
-      - redis
-      - chromadb
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
     networks:
       - backend_network
     env_file:
       - .env.prod
     command: celery -A workers.celery_app worker --loglevel=info --concurrency=2
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A workers.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     
   nlp-ingestor:
@@ -137,7 +178,8 @@ services:
       dockerfile: Dockerfile
     container_name: nlp_ingestor_prod
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     networks:
       - backend_network
     env_file:
@@ -154,8 +196,10 @@ services:
       dockerfile: Dockerfile
     container_name: core_api_prod
     depends_on:
-      - timescaledb
-      - rabbitmq
+      timescaledb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - DB_HOST=timescaledb
       - DB_PORT=5432
@@ -178,6 +222,12 @@ services:
       - "traefik.http.routers.core-api.entrypoints=websecure"
       - "traefik.http.routers.core-api.tls.certresolver=myresolver"
       - "traefik.http.services.core-api.loadbalancer.server.port=8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/api/rss-sources/active || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
   
   # -------------------------------------------------------------
@@ -193,7 +243,8 @@ services:
         - NEXT_PUBLIC_API_URL=https://${DOMAIN_NAME}/api
     container_name: web_client_prod
     depends_on:
-      - core-api
+      core-api:
+        condition: service_healthy
     environment:
       # Used on server-side Next.js Node container
       - INTERNAL_API_URL=http://core-api:8080/api
@@ -207,6 +258,12 @@ services:
       - "traefik.http.routers.web-client.entrypoints=websecure"
       - "traefik.http.routers.web-client.tls.certresolver=myresolver"
       - "traefik.http.services.web-client.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/login || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   # -------------------------------------------------------------
