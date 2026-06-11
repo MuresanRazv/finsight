@@ -40,7 +40,7 @@ class RabbitMQConnection:
 
         if self._connection is None or self._connection.is_closed:
             try:
-                credentials = pika.PlainCredentials(settings.RABBITMQ_USER, settings.RABBITMQ_PASS)
+                credentials = pika.PlainCredentials(settings.RABBITMQ_USER, settings.RABBITMQ_PASSWORD)
                 parameters = pika.ConnectionParameters(
                     host=settings.RABBITMQ_HOST,
                     port=settings.RABBITMQ_PORT,

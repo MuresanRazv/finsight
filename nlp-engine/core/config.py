@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     RABBITMQ_HOST: str = Field("rabbitmq", env="RABBITMQ_HOST")
     RABBITMQ_PORT: int = Field(5672, env="RABBITMQ_PORT")
     RABBITMQ_USER: str = Field("guest", env="RABBITMQ_USER")
-    RABBITMQ_PASS: str = Field("guest", env="RABBITMQ_PASS")
+    RABBITMQ_PASSWORD: str = Field("guest", env="RABBITMQ_PASSWORD")
     QUEUE_RAW_NEWS: str = Field("raw_financial_news", env="QUEUE_RAW_NEWS")
     QUEUE_ANALYZED_SENTIMENT: str = Field("analyzed_sentiment", env="QUEUE_ANALYZED_SENTIMENT")
 

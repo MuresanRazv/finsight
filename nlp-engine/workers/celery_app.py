@@ -3,7 +3,7 @@ from core.config import settings
 
 celery_app = Celery(
     "nlp_engine",
-    broker=f"amqp://{settings.RABBITMQ_USER}:{settings.RABBITMQ_PASS}@{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}//",
+    broker=f"amqp://{settings.RABBITMQ_USER}:{settings.RABBITMQ_PASSWORD}@{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}//",
     backend=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0",
     include=["workers.tasks"]
 )
