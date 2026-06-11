@@ -1,6 +1,8 @@
 import time
 import logging
-import schedule
+import os
+from datetime import datetime, timedelta, time as datetime_time
+from zoneinfo import ZoneInfo
 
 from core.config import settings
 from workers.celery_app import celery_app
@@ -104,22 +106,99 @@ def fetch_and_publish_news():
         return 0
 
 
+def get_sleep_duration_and_zone(dt: datetime) -> tuple[str, int]:
+    """
+    Given a datetime in Romania time, returns the zone name and the next sleep duration in seconds.
+    Boundary checks ensure the loop wakes up exactly when a new zone starts.
+    """
+    weekday = dt.weekday()
+    current_time = dt.time()
+
+    # 1. Weekend Zone (Saturday & Sunday)
+    if weekday >= 5:
+        days_to_monday = 7 - weekday
+        next_change = datetime.combine(dt.date() + timedelta(days=days_to_monday), datetime_time(0, 0), dt.tzinfo)
+        time_to_change = int((next_change - dt).total_seconds())
+        frequency = 12 * 3600 # 12 hours
+        return "quiet", max(1, min(frequency, time_to_change))
+
+    # 2. Fire Zone (Mon-Fri, 14:30 - 23:00)
+    fire_start = datetime_time(14, 30)
+    fire_end = datetime_time(23, 0)
+    
+    if fire_start <= current_time < fire_end:
+        next_change = datetime.combine(dt.date(), fire_end, dt.tzinfo)
+        time_to_change = int((next_change - dt).total_seconds())
+        frequency = 15 * 60 # 15 minutes
+        return "fire", max(1, min(frequency, time_to_change))
+
+    # 3. Maintenance Zone (Mon-Fri, 23:00 - 14:30 next day)
+    if current_time < fire_start:
+        next_change = datetime.combine(dt.date(), fire_start, dt.tzinfo)
+        time_to_change = int((next_change - dt).total_seconds())
+    else:
+        if weekday == 4: # Friday night, transitions to weekend at Saturday 00:00
+            next_change = datetime.combine(dt.date() + timedelta(days=1), datetime_time(0, 0), dt.tzinfo)
+        else: # Mon-Thu night, transitions to Fire zone tomorrow at 14:30
+            next_change = datetime.combine(dt.date() + timedelta(days=1), fire_start, dt.tzinfo)
+        time_to_change = int((next_change - dt).total_seconds())
+
+    frequency = 2 * 3600 # 2 hours
+    return "maintenance", max(1, min(frequency, time_to_change))
+
+
 def main():
     """
     Main entry point for the ingestor.
     """
     logger.info("Starting NLP Ingestor...")
 
-    # Schedule the job to run every 1 minute
-    schedule.every(1).minutes.do(fetch_and_publish_news)
+    # Check for local dev override (e.g., INGESTOR_DEV_INTERVAL_SECONDS=10)
+    dev_interval = os.getenv("INGESTOR_DEV_INTERVAL_SECONDS")
+    if dev_interval:
+        try:
+            interval_secs = int(dev_interval)
+            logger.info(f"Local development override active. Ingestion running on a fixed loop every {interval_secs} seconds.")
+            
+            # Initial fetch on startup
+            try:
+                fetch_and_publish_news()
+            except Exception as e:
+                logger.error(f"Error during startup ingestion: {e}", exc_info=True)
+                
+            while True:
+                logger.info(f"Sleeping for dev interval of {interval_secs} seconds...")
+                time.sleep(interval_secs)
+                try:
+                    fetch_and_publish_news()
+                except Exception as e:
+                    logger.error(f"Error during ingestion cycle: {e}", exc_info=True)
+        except ValueError:
+            logger.error(f"Invalid value for INGESTOR_DEV_INTERVAL_SECONDS: {dev_interval}. Falling back to production schedule.")
 
+    romania_tz = ZoneInfo("Europe/Bucharest")
+    
+    # Run initial scrape on startup
     logger.info("Running initial scrape on startup...")
-    fetch_and_publish_news()
+    try:
+        fetch_and_publish_news()
+    except Exception as e:
+        logger.error(f"Error during startup ingestion: {e}", exc_info=True)
 
     logger.info("Scheduler started. Waiting for next run...")
     while True:
-        schedule.run_pending()
-        time.sleep(1)
+        # Compute sleep interval based on Romanian local time
+        now = datetime.now(romania_tz)
+        zone_name, sleep_seconds = get_sleep_duration_and_zone(now)
+        
+        logger.info(f"Sleeping for {sleep_seconds} seconds (approx {sleep_seconds // 60} minutes) in '{zone_name}' zone...")
+        time.sleep(sleep_seconds)
+        
+        try:
+            fetch_and_publish_news()
+        except Exception as e:
+            logger.error(f"Error during scheduled ingest: {e}", exc_info=True)
+
 
 if __name__ == "__main__":
     main()
