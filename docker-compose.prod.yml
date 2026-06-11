@@ -139,6 +139,13 @@ services:
       - .env.prod
     # Run uvicorn without --reload flag in production
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2000M
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8000/health || exit 1"]
       interval: 10s
@@ -164,6 +171,13 @@ services:
     env_file:
       - .env.prod
     command: celery -A workers.celery_app worker --loglevel=info --concurrency=2
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2000M
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "celery -A workers.celery_app inspect ping || exit 1"]
       interval: 30s
@@ -267,24 +281,19 @@ services:
     restart: unless-stopped
 
   # -------------------------------------------------------------
-  # Portainer (Container Management UI - Routed via Traefik)
+  # Portainer (Container Management UI - Securely Accessed via SSH Tunnel)
   # -------------------------------------------------------------
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer_prod
     command: -H unix:///var/run/docker.sock
+    ports:
+      - "127.0.0.1:9000:9000"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - "portainer_data:/data"
     networks:
       - backend_network
-    labels:
-      - "traefik.enable=true"
-      # Route via a portainer subdomain (e.g. portainer.yourdomain.com)
-      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
-      - "traefik.http.routers.portainer.entrypoints=websecure"
-      - "traefik.http.routers.portainer.tls.certresolver=myresolver"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
     restart: unless-stopped
 
 # Named volumes for production persistency
