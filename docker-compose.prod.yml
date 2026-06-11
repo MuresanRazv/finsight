@@ -124,6 +124,7 @@ services:
   # NLP Engine Services
   # -------------------------------------------------------------
   nlp-api:
+    image: ghcr.io/muresanrazv/finsight-nlp-engine:latest
     build:
       context: ./nlp-engine
       dockerfile: Dockerfile
@@ -157,6 +158,7 @@ services:
     restart: unless-stopped
 
   nlp-worker:
+    image: ghcr.io/muresanrazv/finsight-nlp-engine:latest
     build:
       context: ./nlp-engine
       dockerfile: Dockerfile
@@ -189,6 +191,7 @@ services:
     restart: unless-stopped
     
   nlp-ingestor:
+    image: ghcr.io/muresanrazv/finsight-nlp-engine:latest
     build:
       context: ./nlp-engine
       dockerfile: Dockerfile
@@ -207,6 +210,7 @@ services:
   # Core Spring Boot API (Routed via Traefik)
   # -------------------------------------------------------------
   core-api:
+    image: ghcr.io/muresanrazv/finsight-core-api:latest
     build:
       context: ./core-api
       dockerfile: Dockerfile
@@ -233,8 +237,8 @@ services:
       - backend_network
     labels:
       - "traefik.enable=true"
-      # Route both /api and /ws-sentiment (WebSocket endpoints) to the core-api container
-      - "traefik.http.routers.core-api.rule=Host(`${DOMAIN_NAME}`) && (PathPrefix(`/api`) || PathPrefix(`/ws-sentiment`))"
+      # Route both /api and /ws-sentiment (WebSocket endpoints) to the core-api container (excluding /api/stocks which is handled by Next.js in web-client)
+      - "traefik.http.routers.core-api.rule=Host(`${DOMAIN_NAME}`) && ((PathPrefix(`/api`) && !PathPrefix(`/api/stocks`)) || PathPrefix(`/ws-sentiment`))"
       - "traefik.http.routers.core-api.entrypoints=websecure"
       - "traefik.http.routers.core-api.tls.certresolver=myresolver"
       - "traefik.http.services.core-api.loadbalancer.server.port=8080"
@@ -250,6 +254,7 @@ services:
   # Next.js Frontend Client (Routed via Traefik)
   # -------------------------------------------------------------
   web-client:
+    image: ghcr.io/muresanrazv/finsight-web-client:latest
     build:
       context: ./web-client
       dockerfile: Dockerfile

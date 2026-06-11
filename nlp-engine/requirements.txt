@@ -36,4 +36,4 @@ langchain-community
 langchain-huggingface
 langchain-core
 langchain-google-genai
-slowapi>=0.1.9
+slowapi>=0.1.9pytest>=8.0.0
