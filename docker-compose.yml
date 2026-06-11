@@ -52,7 +52,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - chroma_data:/chroma/data
+      - chroma_data:/data
     networks:
       - backend_network
     restart: unless-stopped

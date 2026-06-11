@@ -109,7 +109,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
     volumes:
-      - chroma_data_prod:/chroma/data
+      - chroma_data_prod:/data
     networks:
       - backend_network
     healthcheck:
