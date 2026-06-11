@@ -3,6 +3,7 @@ package org.finsight.coreapi.common;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.finsight.coreapi.user.UserNotFoundException;
+import org.finsight.coreapi.user.UsageLimitExceededException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -36,5 +37,16 @@ public class GlobalExceptionHandler {
         body.put("details", ex.getMessage());
 
         return new ResponseEntity<>(body, HttpStatus.BAD_GATEWAY);
+    }
+
+    @ExceptionHandler(UsageLimitExceededException.class)
+    public ResponseEntity<Object> handleUsageLimitExceededException(
+            UsageLimitExceededException ex, WebRequest request) {
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(body, HttpStatus.TOO_MANY_REQUESTS);
     }
 }

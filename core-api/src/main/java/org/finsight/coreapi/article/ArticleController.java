@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.finsight.coreapi.user.User;
 import org.finsight.coreapi.user.UserRepository;
+import org.finsight.coreapi.user.UserUsageLimitService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,6 +28,7 @@ public class ArticleController {
     private final WebClient.Builder webClientBuilder;
     private final ArticleRepository articleRepository;
     private final EntitySentimentRepository entitySentimentRepository;
+    private final UserUsageLimitService userUsageLimitService;
 
     @Value("${nlp.api.url}")
     private String nlpApiUrl;
@@ -40,6 +42,8 @@ public class ArticleController {
 
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        userUsageLimitService.checkAndIncrementIngestion(user, 1);
 
         // Save a new pending request
         UserArticleProcessingRequest request = UserArticleProcessingRequest.builder()
@@ -131,6 +135,8 @@ public class ArticleController {
         if (requestDto.getUrls() == null || requestDto.getUrls().isEmpty()) {
             return ResponseEntity.badRequest().body("No URLs provided");
         }
+
+        userUsageLimitService.checkAndIncrementIngestion(user, requestDto.getUrls().size());
 
         // Save a PENDING request for each URL
         for (String url : requestDto.getUrls()) {

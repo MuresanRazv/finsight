@@ -65,11 +65,18 @@ export async function ingestArticle(data: {
         })
 
         if (!response.ok) {
-            const errorText = await response.text()
-            return {
-                success: false,
-                message:
-                    errorText || 'Failed to submit article for processing.',
+            try {
+                const errorData = await response.json()
+                return {
+                    success: false,
+                    message: errorData.message || 'Failed to submit article for processing.',
+                }
+            } catch {
+                const errorText = await response.text()
+                return {
+                    success: false,
+                    message: errorText || 'Failed to submit article for processing.',
+                }
             }
         }
 
@@ -143,12 +150,18 @@ export async function bulkIngestArticles(
         })
 
         if (!response.ok) {
-            const errorText = await response.text()
-            return {
-                success: false,
-                message:
-                    errorText ||
-                    'Failed to submit articles for bulk processing.',
+            try {
+                const errorData = await response.json()
+                return {
+                    success: false,
+                    message: errorData.message || 'Failed to submit articles for bulk processing.',
+                }
+            } catch {
+                const errorText = await response.text()
+                return {
+                    success: false,
+                    message: errorText || 'Failed to submit articles for bulk processing.',
+                }
             }
         }
 
