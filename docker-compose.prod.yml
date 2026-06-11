@@ -5,7 +5,7 @@ services:
   # Traefik Reverse Proxy (Handles SSL/TLS & Routing)
   # -------------------------------------------------------------
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.1
     container_name: traefik
     command:
       # Enable API and Dashboard (kept internal, no router rule)
