@@ -32,6 +32,8 @@ services:
       - "traefik_certificates:/letsencrypt"
     networks:
       - backend_network
+    environment:
+      - DOCKER_API_VERSION=1.46
     restart: unless-stopped
 
   # -------------------------------------------------------------
