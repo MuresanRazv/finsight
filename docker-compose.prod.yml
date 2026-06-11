@@ -44,6 +44,8 @@ services:
       POSTGRES_USER: ${DB_USER:-admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-sentiment_hub}
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - timescaledb_data_prod:/var/lib/postgresql/data
     networks:
