@@ -209,6 +209,27 @@ services:
       - "traefik.http.services.web-client.loadbalancer.server.port=3000"
     restart: unless-stopped
 
+  # -------------------------------------------------------------
+  # Portainer (Container Management UI - Routed via Traefik)
+  # -------------------------------------------------------------
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer_prod
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "portainer_data:/data"
+    networks:
+      - backend_network
+    labels:
+      - "traefik.enable=true"
+      # Route via a portainer subdomain (e.g. portainer.yourdomain.com)
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=myresolver"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+    restart: unless-stopped
+
 # Named volumes for production persistency
 volumes:
   timescaledb_data_prod:
@@ -216,6 +237,7 @@ volumes:
   redis_data_prod:
   chroma_data_prod:
   # redisinsight_data_prod:
+  portainer_data:
   traefik_certificates:
 
 # Shared production bridge network
