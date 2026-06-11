@@ -32,36 +32,54 @@ class MLService:
     Service for handling ML model inference.
     """
     def __init__(self):
-        # Load FinBERT for sentiment analysis
-        self.sentiment_pipeline = pipeline(
-            "sentiment-analysis", 
-            model="ProsusAI/finbert", 
-            truncation=True, 
-            max_length=512
-        )
-        
-        # Load BERT-NER for entity recognition
-        self.ner_pipeline = pipeline(
-            "ner", 
-            model="dslim/bert-base-NER", 
-            aggregation_strategy="simple"
-        )
-        
-        # Load MiniLM for vector embeddings
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        # Explicitly set max sequence length to ensure truncation works as expected
-        self.embedding_model.max_seq_length = 256
-        
-        # Load Spacy for sentence segmentation
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            logger.warning("Spacy model 'en_core_web_sm' not found. Downloading...")
-            from spacy.cli import download
-            download("en_core_web_sm")
-            self.nlp = spacy.load("en_core_web_sm")
-            
-        logger.info("ML models loaded successfully")
+        self._sentiment_pipeline = None
+        self._ner_pipeline = None
+        self._embedding_model = None
+        self._nlp = None
+
+    @property
+    def sentiment_pipeline(self):
+        if self._sentiment_pipeline is None:
+            logger.info("Lazily loading FinBERT model...")
+            self._sentiment_pipeline = pipeline(
+                "sentiment-analysis", 
+                model="ProsusAI/finbert", 
+                truncation=True, 
+                max_length=512
+            )
+        return self._sentiment_pipeline
+
+    @property
+    def ner_pipeline(self):
+        if self._ner_pipeline is None:
+            logger.info("Lazily loading BERT-NER model...")
+            self._ner_pipeline = pipeline(
+                "ner", 
+                model="dslim/bert-base-NER", 
+                aggregation_strategy="simple"
+            )
+        return self._ner_pipeline
+
+    @property
+    def embedding_model(self):
+        if self._embedding_model is None:
+            logger.info("Lazily loading SentenceTransformer model...")
+            self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+            self._embedding_model.max_seq_length = 256
+        return self._embedding_model
+
+    @property
+    def nlp(self):
+        if self._nlp is None:
+            logger.info("Lazily loading SpaCy model...")
+            try:
+                self._nlp = spacy.load("en_core_web_sm")
+            except OSError:
+                logger.warning("Spacy model 'en_core_web_sm' not found. Downloading...")
+                from spacy.cli import download
+                download("en_core_web_sm")
+                self._nlp = spacy.load("en_core_web_sm")
+        return self._nlp
 
     @benchmark_action(
         "ml_sentiment_inference",
