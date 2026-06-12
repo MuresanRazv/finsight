@@ -116,7 +116,7 @@ export function MyTickersChart() {
                     const defaultFilters = result.available_filters.reduce(
                         (acc, filter) => {
                             if (filter.key && filter.default_value) {
-                                acc[filter.key] = filter.default_value
+                                acc[filter.key] = filter.default_value as string
                             }
                             return acc
                         },
@@ -501,11 +501,11 @@ export function MyTickersChart() {
 
                                     <div className='shrink-0 text-right'>
                                         <div className='text-foreground font-mono text-sm font-bold'>
-                                            {qData.price !== null
+                                            {qData.price !== null && qData.price !== undefined
                                                 ? `$${qData.price.toFixed(2)}`
                                                 : 'N/A'}
                                         </div>
-                                        {qData.changePercent !== null && (
+                                        {qData.changePercent !== null && qData.changePercent !== undefined && (
                                             <div
                                                 className={cn(
                                                     'font-mono text-[10px] font-bold',

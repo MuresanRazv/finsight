@@ -1,10 +1,11 @@
+import { WSMessage } from '@/components/providers/WebSocketProvider'
 import { Client, StompSubscription, IMessage } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 
 export class WebSocketService {
     private client: Client
     private subscriptions: Map<string, StompSubscription> = new Map()
-    private pendingSubscriptions: Map<string, (message: unknown) => void> =
+    private pendingSubscriptions: Map<string, (message: WSMessage) => void> =
         new Map()
 
     constructor(token: string) {
@@ -50,7 +51,7 @@ export class WebSocketService {
         this.subscriptions.clear()
     }
 
-    public subscribe(destination: string, callback: (message: unknown) => void) {
+    public subscribe(destination: string, callback: (message: WSMessage) => void) {
         if (!this.client.connected) {
             console.log(
                 `Client not connected, queuing subscription for ${destination}`,
@@ -71,7 +72,7 @@ export class WebSocketService {
                     callback(body)
                 } catch (e) {
                     console.error('Error parsing message body', e)
-                    callback(message.body)
+                    callback(JSON.parse('{}'))
                 }
             },
         )

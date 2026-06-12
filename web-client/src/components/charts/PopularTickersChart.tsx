@@ -48,7 +48,7 @@ export function PopularTickersChart() {
                     const defaultFilters = result.available_filters.reduce(
                         (acc, filter) => {
                             if (filter.key && filter.default_value) {
-                                acc[filter.key] = filter.default_value
+                                acc[filter.key] = filter.default_value as string
                             }
                             return acc
                         },

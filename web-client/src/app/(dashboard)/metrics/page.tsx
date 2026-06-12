@@ -447,9 +447,9 @@ export default function MetricsPage() {
                                                     ) : run.article_count > 0 ? (
                                                         <span>Articles: {run.article_count}</span>
                                                     ) : run.metadata?.query ? (
-                                                        <span className='italic'>Query: &quot;{run.metadata.query}&quot;</span>
+                                                        <span className='italic'>Query: &quot;{run.metadata.query as string}&quot;</span>
                                                     ) : run.metadata?.url ? (
-                                                        <span className='truncate'>{run.metadata.url}</span>
+                                                        <span className='truncate'>{run.metadata.url as string}</span>
                                                     ) : (
                                                         <span className='opacity-40'>-</span>
                                                     )}

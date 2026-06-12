@@ -180,7 +180,7 @@ function ArticleDeepDiveContent({
                 if (data) {
                     const parsedEntities = (data.entities || []).map((e: { name?: string; ticker?: string; sentiment_score?: number; sentiment_label?: string }) => ({
                         name: e.name || e.ticker || 'Unknown',
-                        ticker: e.ticker || null,
+                        ticker: e.ticker || undefined,
                         sentiment_score: e.sentiment_score !== undefined ? e.sentiment_score : 0.5,
                         sentiment_label: e.sentiment_label || 'neutral',
                     }))

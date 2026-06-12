@@ -9,8 +9,38 @@ import React, {
 } from 'react'
 import { WebSocketService } from '@/lib/websocket'
 
+export interface WSMessage {
+    id?: number
+    ticker?: string
+    article_title?: string
+    articleTitle?: string
+    title?: string
+    url?: string
+    source?: string | null
+    article_url?: string
+    articleUrl?: string
+    article_overall_sentiment_score?: number
+    articleOverallSentimentScore?: number
+    article_overall_sentiment_label?: string | null
+    articleOverallSentimentLabel?: string | null
+    article_entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
+    articleEntities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
+    article_uuid?: string | null
+    articleUuid?: string | null
+    is_read?: boolean
+    created_at?: string
+    entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[]
+    processed_at?: string
+    processedAt?: string
+    overall_sentiment_score?: number
+    overallSentimentScore?: number
+    overall_sentiment_label?: string
+    overallSentimentLabel?: string
+    uuid?: string
+}
+
 interface WebSocketContextType {
-    subscribe: (destination: string, callback: (message: unknown) => void) => void
+    subscribe: (destination: string, callback: (message: WSMessage) => void) => void
     unsubscribe: (destination: string) => void
     isConnected: boolean
 }
@@ -47,7 +77,7 @@ export function WebSocketProvider({
 
     const subscribe = (
         destination: string,
-        callback: (message: unknown) => void,
+        callback: (message: WSMessage) => void,
     ) => {
         if (wsServiceRef.current) {
             wsServiceRef.current.subscribe(destination, callback)

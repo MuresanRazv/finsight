@@ -324,7 +324,7 @@ export default function TickerPage({
         }
     }
 
-    const isPositive = stockQuote?.change !== null ? stockQuote?.change >= 0 : false
+    const isPositive = stockQuote?.change !== null && stockQuote?.change !== undefined ? stockQuote.change >= 0 : false
     const isAddedToWatchlist = watchlistTickers.includes(symbol)
 
     const navigateToArticleAnalysis = (newsArticle: TickerRelatedNewsItem) => {
@@ -369,12 +369,12 @@ export default function TickerPage({
                             </div>
                             {quoteLoading ? (
                                 <div className="mt-2 h-6 w-32 bg-muted/20 animate-pulse rounded"></div>
-                            ) : stockQuote && stockQuote.price !== null ? (
+                            ) : stockQuote && stockQuote.price !== null && stockQuote.price !== undefined ? (
                                 <div className='mt-1 flex items-center gap-3'>
                                     <span className='text-foreground font-mono text-2xl font-bold'>
                                         ${stockQuote.price.toFixed(2)}
                                     </span>
-                                    {stockQuote.changePercent !== null && (
+                                    {stockQuote.changePercent !== null && stockQuote.changePercent !== undefined && (
                                         <span
                                             className={`flex items-center gap-0.5 text-sm font-bold ${
                                                 isPositive

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 interface ChartFiltersProps {
     filters: FilterDefinition[]
     activeFilters: Record<string, unknown>
-    onFilterChange: (key: string, value: unknown) => void
+    onFilterChange: (key: string, value: string) => void
     showAllOption?: boolean
 }
 

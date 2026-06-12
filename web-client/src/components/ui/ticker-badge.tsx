@@ -153,7 +153,7 @@ export function TickerBadge({
                         {/* Price Details */}
                         <div className='flex items-baseline justify-between pt-1'>
                             <div className='text-foreground font-mono text-xl font-bold'>
-                                {data.price !== null
+                                {!!data.price
                                     ? `$${data.price.toFixed(2)}`
                                     : 'N/A'}
                             </div>
@@ -179,7 +179,7 @@ export function TickerBadge({
                         </div>
 
                         {/* Extra Price Info */}
-                        {data.change !== null && data.price !== null && (
+                        {!!data.change && !!data.price && (
                             <div className='text-muted-foreground border-border/40 flex justify-between border-t pt-2 font-mono text-[10px]'>
                                 <span>24h Change:</span>
                                 <span

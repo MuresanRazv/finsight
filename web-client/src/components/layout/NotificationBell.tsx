@@ -10,7 +10,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useWebSocket } from '@/components/providers/WebSocketProvider'
+import { useWebSocket, WSMessage } from '@/components/providers/WebSocketProvider'
 import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
 import { getUserSettings } from '@/app/actions/settings'
@@ -21,15 +21,22 @@ import {
 } from '@/app/actions/notifications'
 import { NotificationDto } from '@/lib/types/notification'
 import { cleanArticleTitle } from '@/lib/utils'
+import { EntitySentiment } from '@/lib/types/article'
 
 interface RawNotification {
     id: number
     ticker: string
+    article_url?: string
+    articleUrl?: string
+    article_processed_at?: string
+    articleProcessedAt?: string
+    sentiment_score?: number
+    sentimentScore?: number
+    sentiment_label?: string
+    sentimentLabel?: string
     article_title?: string
     articleTitle?: string
     source?: string | null
-    article_url?: string
-    articleUrl?: string
     article_overall_sentiment_score?: number
     articleOverallSentimentScore?: number
     article_overall_sentiment_label?: string | null
@@ -42,36 +49,6 @@ interface RawNotification {
     created_at: string
 }
 
-interface WSMessage {
-    id?: number
-    ticker?: string
-    article_title?: string
-    articleTitle?: string
-    title?: string
-    url?: string
-    source?: string | null
-    article_url?: string
-    articleUrl?: string
-    article_overall_sentiment_score?: number
-    articleOverallSentimentScore?: number
-    article_overall_sentiment_label?: string | null
-    articleOverallSentimentLabel?: string | null
-    article_entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
-    articleEntities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
-    article_uuid?: string | null
-    articleUuid?: string | null
-    is_read?: boolean
-    created_at?: string
-    entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[]
-    processed_at?: string
-    processedAt?: string
-    overall_sentiment_score?: number
-    overallSentimentScore?: number
-    overall_sentiment_label?: string
-    overallSentimentLabel?: string
-    uuid?: string
-}
-
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<NotificationDto[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
@@ -82,16 +59,24 @@ export function NotificationBell() {
         try {
             const data = await getNotifications()
             if (data && Array.isArray(data)) {
-                const normalized = data.map((n: RawNotification) => ({
-                    ...n,
+                const normalized: NotificationDto[] = data.map((n: RawNotification) => ({
+                    id: n.id,
+                    ticker: n.ticker,
+                    article_url: n.article_url || n.articleUrl || '',
+                    article_processed_at: n.article_processed_at || n.articleProcessedAt || new Date().toISOString(),
+                    sentiment_score: n.sentiment_score !== undefined ? n.sentiment_score : (n.sentimentScore !== undefined ? n.sentimentScore : 0),
+                    sentiment_label: n.sentiment_label || n.sentimentLabel || 'neutral',
+                    is_read: n.is_read,
+                    created_at: n.created_at,
+                    source: n.source,
                     article_title: cleanArticleTitle(
                         n.article_title || n.articleTitle || '',
                         n.source,
-                        n.article_url || n.articleUrl,
+                        n.article_url || n.articleUrl || '',
                     ),
                     article_overall_sentiment_score: n.article_overall_sentiment_score !== undefined ? n.article_overall_sentiment_score : n.articleOverallSentimentScore,
                     article_overall_sentiment_label: n.article_overall_sentiment_label || n.articleOverallSentimentLabel || null,
-                    article_entities: n.article_entities || n.articleEntities || null,
+                    article_entities: (n.article_entities as EntitySentiment[]) || (n.articleEntities as EntitySentiment[]) || null,
                     article_uuid: n.article_uuid || n.articleUuid || null,
                 }))
                 setNotifications(normalized)
@@ -121,7 +106,7 @@ export function NotificationBell() {
                     ),
                     article_overall_sentiment_score: message.article_overall_sentiment_score !== undefined ? message.article_overall_sentiment_score : message.articleOverallSentimentScore,
                     article_overall_sentiment_label: message.article_overall_sentiment_label || message.articleOverallSentimentLabel || null,
-                    article_entities: message.article_entities || message.articleEntities || null,
+                    article_entities: (message.article_entities as EntitySentiment[]) || (message.articleEntities as EntitySentiment[]) || null,
                     article_uuid: message.article_uuid || message.articleUuid || null,
                 }
             } else {
@@ -176,7 +161,7 @@ export function NotificationBell() {
                         message.overall_sentiment_label ||
                         message.overallSentimentLabel ||
                         'neutral',
-                    article_entities: message.entities || null,
+                    article_entities: (message.entities as EntitySentiment[]) || null,
                     article_uuid: message.uuid || message.article_uuid || message.articleUuid || null,
                 }
             }
