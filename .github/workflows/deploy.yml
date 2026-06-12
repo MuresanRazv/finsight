@@ -6,7 +6,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REPO: ${{ github.repository_owner }}
 
 jobs:
   # ---------------------------------------------------------------
@@ -98,6 +97,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -114,7 +116,7 @@ jobs:
         with:
           context: ./core-api
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPO }}/finsight-core-api:latest
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/finsight-core-api:latest
           cache-from: type=gha,scope=core-api
           cache-to: type=gha,mode=max,scope=core-api
 
@@ -124,7 +126,7 @@ jobs:
         with:
           context: ./web-client
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPO }}/finsight-web-client:latest
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/finsight-web-client:latest
           build-args: |
             NEXT_PUBLIC_WS_URL=wss://${{ secrets.DOMAIN_NAME }}/ws-sentiment
             NEXT_PUBLIC_API_URL=https://${{ secrets.DOMAIN_NAME }}/api
@@ -137,7 +139,7 @@ jobs:
         with:
           context: ./nlp-engine
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.REPO }}/finsight-nlp-engine:latest
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/finsight-nlp-engine:latest
           cache-from: type=gha,scope=nlp-engine
           cache-to: type=gha,mode=max,scope=nlp-engine
 
@@ -161,6 +163,9 @@ jobs:
           source: docker-compose.prod.yml
           target: /root/finsight/
 
+      - name: Set lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -172,12 +177,12 @@ jobs:
             cd /root/finsight
 
             # Authenticate with ghcr.io using a scoped PAT stored on the server
-            echo "$GHCR_PAT" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+            echo "$GHCR_PAT" | docker login ghcr.io -u muresanrazv --password-stdin
 
             # Pull the freshly built images
-            docker pull ghcr.io/${{ env.REPO }}/finsight-core-api:latest
-            docker pull ghcr.io/${{ env.REPO }}/finsight-web-client:latest
-            docker pull ghcr.io/${{ env.REPO }}/finsight-nlp-engine:latest
+            docker pull ghcr.io/muresanrazv/finsight-core-api:latest
+            docker pull ghcr.io/muresanrazv/finsight-web-client:latest
+            docker pull ghcr.io/muresanrazv/finsight-nlp-engine:latest
 
             # Restart the stack using the alias (includes --env-file .env.prod)
             docker compose -f /root/finsight/docker-compose.prod.yml --env-file /root/finsight/.env.prod up -d
