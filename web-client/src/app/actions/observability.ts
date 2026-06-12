@@ -10,7 +10,7 @@ export interface MetricRun {
     status: 'success' | 'failed'
     article_count: number
     error?: string | null
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
 }
 
 export interface MetricDetail {

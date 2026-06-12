@@ -137,7 +137,7 @@ export default function RssSourcesPage() {
             } else {
                 throw new Error('Update failed')
             }
-        } catch (error) {
+        } catch {
             // Revert state
             setSources((prev) =>
                 prev.map((s) =>
@@ -159,7 +159,7 @@ export default function RssSourcesPage() {
                 setSources((prev) => prev.filter((s) => s.id !== id))
                 toast.success(`Feed "${name}" deleted.`)
             }
-        } catch (error) {
+        } catch {
             toast.error(`Failed to delete feed "${name}".`)
         }
     }
@@ -192,7 +192,7 @@ export default function RssSourcesPage() {
             } else {
                 toast.error('Feed parse test failed.')
             }
-        } catch (error) {
+        } catch {
             setTestResult({
                 success: false,
                 message:
@@ -248,8 +248,9 @@ export default function RssSourcesPage() {
                 }
             }
             setIsEditing(false)
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to save feed configuration.')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to save feed configuration.'
+            toast.error(errorMessage)
         }
     }
 

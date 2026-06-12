@@ -23,5 +23,5 @@ export interface FilterDefinition {
     label?: string
     type?: 'DATE_RANGE' | 'SELECT' | 'MULTI_SELECT'
     options?: string[]
-    default_value?: any
+    default_value?: unknown
 }

@@ -30,7 +30,13 @@ import { cleanArticleTitle } from '@/lib/utils'
 
 import { getMyTickers } from '@/app/actions/charts'
 
-const CustomDot = (props: any) => {
+interface CustomDotProps {
+    cx?: number
+    cy?: number
+    value?: number
+}
+
+const CustomDot = (props: CustomDotProps) => {
     const { cx, cy, value } = props
     if (value === undefined || value === null) return null
     let color = '#eab308' // yellow
@@ -40,7 +46,7 @@ const CustomDot = (props: any) => {
     return <circle cx={cx} cy={cy} r={4} fill={color} strokeWidth={0} />
 }
 
-const CustomActiveDot = (props: any) => {
+const CustomActiveDot = (props: CustomDotProps) => {
     const { cx, cy, value } = props
     if (value === undefined || value === null) return null
     let color = '#eab308'
@@ -58,10 +64,10 @@ const CustomActiveDot = (props: any) => {
     )
 }
 
-const getGradientStops = (chartData: any[], ticker: string) => {
+const getGradientStops = (chartData: Record<string, unknown>[], ticker: string) => {
     const values = chartData
-        .map((d: any) => d[ticker] as number)
-        .filter((v: any) => typeof v === 'number')
+        .map((d: Record<string, unknown>) => d[ticker] as number)
+        .filter((v: number) => typeof v === 'number')
     if (values.length === 0) return null
 
     const min = Math.min(...values)
@@ -107,7 +113,7 @@ const formatChartDate = (dateStr: string) => {
             month: 'short',
             day: 'numeric',
         })
-    } catch (e) {
+    } catch {
         return dateStr
     }
 }
@@ -132,9 +138,18 @@ export default function TickerPage({
     const [loadingNews, setLoadingNews] = useState(true)
 
     // Dynamic states replacing getProceduralTickerData mock
-    const [stockQuote, setStockQuote] = useState<any>(null)
+    interface StockQuoteData {
+        name?: string
+        exchange?: string
+        industry?: string
+        logo?: string
+        price?: number | null
+        changePercent?: number | null
+        change?: number | null
+    }
+    const [stockQuote, setStockQuote] = useState<StockQuoteData | null>(null)
     const [quoteLoading, setQuoteLoading] = useState(true)
-    const [sentimentData, setSentimentData] = useState<any[]>([])
+    const [sentimentData, setSentimentData] = useState<Record<string, unknown>[]>([])
     const [loadingSentiment, setLoadingSentiment] = useState(true)
 
     // Fetch live stock quote from API
@@ -298,13 +313,13 @@ export default function TickerPage({
         candles.length > 0 ? Math.max(...candles.map((c) => c.high)) : 0
     const priceRange = maxPrice - minPrice
 
-    const formatNewsDate = (dateInput: any) => {
+    const formatNewsDate = (dateInput: string | number | Date | null | undefined) => {
         if (!dateInput) return 'unknown'
         try {
             const date = new Date(dateInput)
             if (isNaN(date.getTime())) return 'invalid date'
             return formatDistanceToNow(date, { addSuffix: true })
-        } catch (error) {
+        } catch {
             return 'invalid date'
         }
     }
@@ -312,7 +327,7 @@ export default function TickerPage({
     const isPositive = stockQuote?.change !== null ? stockQuote?.change >= 0 : false
     const isAddedToWatchlist = watchlistTickers.includes(symbol)
 
-    const navigateToArticleAnalysis = (newsArticle: any) => {
+    const navigateToArticleAnalysis = (newsArticle: TickerRelatedNewsItem) => {
         if (newsArticle.uuid) {
             router.push(`/articles/deep-dive/${newsArticle.uuid}`)
         } else {

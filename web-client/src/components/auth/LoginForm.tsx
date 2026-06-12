@@ -122,7 +122,7 @@ export function LoginForm() {
             </CardContent>
             <CardFooter className='flex justify-center'>
                 <div className='text-muted-foreground text-sm'>
-                    Don't have an account?{' '}
+                    Don&apos;t have an account?{' '}
                     <Link
                         href='/register'
                         className='hover:text-primary underline'

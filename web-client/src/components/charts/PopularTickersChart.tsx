@@ -145,7 +145,7 @@ export function PopularTickersChart() {
                                 />
                                 <Bar dataKey='count'>
                                     {chartData.map(
-                                        (entry: any, index: number) => (
+                                        (entry: { count: number; ticker: string; average_sentiment?: number }, index: number) => (
                                             <Cell
                                                 key={`cell-${index}`}
                                                 fill={

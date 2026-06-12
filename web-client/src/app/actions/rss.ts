@@ -73,7 +73,7 @@ export async function createRssSource(data: Partial<RssSourceItem>) {
         }
 
         return (await response.json()) as RssSourceItem
-    } catch (error: any) {
+    } catch (error) {
         console.error('Failed to create RSS source:', error)
         throw error
     }
@@ -102,7 +102,7 @@ export async function updateRssSource(
         }
 
         return (await response.json()) as RssSourceItem
-    } catch (error: any) {
+    } catch (error) {
         console.error('Failed to update RSS source:', error)
         throw error
     }
@@ -122,7 +122,7 @@ export async function deleteRssSource(id: number) {
 
         if (!response.ok) throw new Error('Failed to delete RSS source')
         return { success: true }
-    } catch (error: any) {
+    } catch (error) {
         console.error('Failed to delete RSS source:', error)
         throw error
     }
@@ -163,11 +163,12 @@ export async function testRssSource(
         }
 
         return (await response.json()) as TestRssResponse
-    } catch (error: any) {
+    } catch (error) {
         console.error('Failed to test RSS source:', error)
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.'
         return {
             success: false,
-            message: error.message || 'An unexpected error occurred.',
+            message: errorMessage,
             articles: [],
         }
     }

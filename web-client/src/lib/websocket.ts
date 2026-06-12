@@ -4,7 +4,7 @@ import SockJS from 'sockjs-client'
 export class WebSocketService {
     private client: Client
     private subscriptions: Map<string, StompSubscription> = new Map()
-    private pendingSubscriptions: Map<string, (message: any) => void> =
+    private pendingSubscriptions: Map<string, (message: unknown) => void> =
         new Map()
 
     constructor(token: string) {
@@ -50,7 +50,7 @@ export class WebSocketService {
         this.subscriptions.clear()
     }
 
-    public subscribe(destination: string, callback: (message: any) => void) {
+    public subscribe(destination: string, callback: (message: unknown) => void) {
         if (!this.client.connected) {
             console.log(
                 `Client not connected, queuing subscription for ${destination}`,

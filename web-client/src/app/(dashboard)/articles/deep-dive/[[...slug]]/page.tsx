@@ -2,24 +2,20 @@
 
 import { Suspense, useState, useEffect, use } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast } from 'sonner'
 import { getUserSettings, updateUserSettings } from '@/app/actions/settings'
 import { getArticleDetail, getTickerRelatedNews, TickerRelatedNewsItem } from '@/app/actions/articles'
 import { cleanArticleTitle } from '@/lib/utils'
+import { EntitySentiment } from '@/lib/types/article'
 import {
     ArrowLeft,
     TrendingUp,
     TrendingDown,
-    Zap,
     Activity,
-    ArrowRight,
     Globe,
     Calendar,
     User,
-    Clock,
     FileText,
-    Share2,
     Check,
     Plus,
     ExternalLink,
@@ -77,17 +73,27 @@ const getSourceFromUrl = (urlStr: string | null) => {
     }
 }
 
-const groupTickers = (entities: any[]) => {
+const groupTickers = (entities: EntitySentiment[]) => {
     if (!entities || !Array.isArray(entities)) return []
 
     const filtered = entities.filter(
-        (e: any) => e && e.ticker && typeof e.ticker === 'string' && e.ticker.trim() !== ''
+        (e) => e && e.ticker && typeof e.ticker === 'string' && e.ticker.trim() !== ''
     )
 
-    const groups: Record<string, any> = {}
+    interface TickerGroup {
+        ticker: string
+        name: string
+        occurrences: {
+            name: string
+            sentimentScore: number
+            sentimentLabel: string
+        }[]
+    }
 
-    filtered.forEach((e: any) => {
-        const symbol = e.ticker.toUpperCase().trim()
+    const groups: Record<string, TickerGroup> = {}
+
+    filtered.forEach((e) => {
+        const symbol = e.ticker!.toUpperCase().trim()
         const score = e.sentiment_score !== undefined ? e.sentiment_score : 0.5
         const label = e.sentiment_label || 'neutral'
 
@@ -118,7 +124,6 @@ function ArticleDeepDiveContent({
     const searchParams = useSearchParams()
     const router = useRouter()
     const [watchlistTickers, setWatchlistTickers] = useState<string[]>([])
-    const [loadingWatchlist, setLoadingWatchlist] = useState(true)
     const [selectedChartTicker, setSelectedChartTicker] = useState<string>('')
     const [expandedTickers, setExpandedTickers] = useState<Record<string, boolean>>({})
 
@@ -134,8 +139,6 @@ function ArticleDeepDiveContent({
                 }
             } catch (err) {
                 console.error('Failed to load user settings', err)
-            } finally {
-                setLoadingWatchlist(false)
             }
         }
         fetchSettings()
@@ -148,7 +151,19 @@ function ArticleDeepDiveContent({
         uuidParam = slug[0]
     }
 
-    const [dbArticle, setDbArticle] = useState<any>(null)
+    interface MappedArticle {
+        title: string
+        url: string
+        source: string
+        published_at: string
+        sentiment_score: number
+        sentiment_label: string
+        category: string
+        readTime: string
+        author: string
+        entities: EntitySentiment[]
+    }
+    const [dbArticle, setDbArticle] = useState<MappedArticle | null>(null)
     const [articleLoading, setArticleLoading] = useState(true)
 
     // Load article from database if uuid is present
@@ -163,7 +178,7 @@ function ArticleDeepDiveContent({
             try {
                 const data = await getArticleDetail(uuidParam)
                 if (data) {
-                    const parsedEntities = (data.entities || []).map((e: any) => ({
+                    const parsedEntities = (data.entities || []).map((e: { name?: string; ticker?: string; sentiment_score?: number; sentiment_label?: string }) => ({
                         name: e.name || e.ticker || 'Unknown',
                         ticker: e.ticker || null,
                         sentiment_score: e.sentiment_score !== undefined ? e.sentiment_score : 0.5,
@@ -201,7 +216,7 @@ function ArticleDeepDiveContent({
 
     const primaryTicker =
         article.entities.find(
-            (e: any) => e.ticker && typeof e.ticker === 'string' && e.ticker.trim() !== ''
+            (e) => e.ticker && typeof e.ticker === 'string' && e.ticker.trim() !== ''
         )?.ticker || 'NVDA'
     const activeChartTicker = selectedChartTicker || primaryTicker
 
@@ -224,7 +239,7 @@ function ArticleDeepDiveContent({
             try {
                 // Fetch up to 15 related news sentiments from TimescaleDB
                 const data = await getTickerRelatedNews(activeChartTicker, 15)
-                let timeline: TickerRelatedNewsItem[] = data ? [...data] : []
+                const timeline: TickerRelatedNewsItem[] = data ? [...data] : []
 
                 // Check if the current article is in the fetched list (matching by url)
                 const hasCurrent = timeline.some(item => item.url === article.url)
@@ -311,7 +326,6 @@ function ArticleDeepDiveContent({
     const eventX = sentimentTimeline.length > 1
         ? (eventIndex !== -1 ? (eventIndex / (sentimentTimeline.length - 1)) * 800 : 400)
         : 400
-    const eventY = 110 - eventValue * 80
 
     const finalItem = sentimentTimeline[sentimentTimeline.length - 1]
     const finalValue = finalItem ? getSentimentValue(finalItem) : eventValue
@@ -365,11 +379,7 @@ function ArticleDeepDiveContent({
           ? 'text-sentiment-negative'
           : 'text-sentiment-neutral'
 
-    const sentimentBg = isPositive
-        ? 'bg-sentiment-positive/10 border-sentiment-positive/30'
-        : isNegative
-          ? 'bg-sentiment-negative/10 border-sentiment-negative/30'
-          : 'bg-sentiment-neutral/10 border-sentiment-neutral/30'
+
 
     if (articleLoading && !dbArticle && uuidParam) {
         return (
@@ -582,18 +592,18 @@ function ArticleDeepDiveContent({
                                     {(Array.from(
                                         new Set(
                                             (article.entities || [])
-                                                .map((e: any) => e.ticker)
-                                                .filter(Boolean)
-                                                .map((t: any) => String(t).toUpperCase())
+                                                .map((e) => e.ticker)
+                                                .filter((ticker): ticker is string => typeof ticker === 'string' && ticker !== '')
+                                                .map((t) => t.toUpperCase())
                                         )
                                     ) as string[]).length > 0 ? (
                                         <div className='bg-surface-container-low border-border flex items-center gap-1 rounded-lg border p-1'>
                                             {(Array.from(
                                                 new Set(
                                                     (article.entities || [])
-                                                        .map((e: any) => e.ticker)
-                                                        .filter(Boolean)
-                                                        .map((t: any) => String(t).toUpperCase())
+                                                        .map((e) => e.ticker)
+                                                        .filter((ticker): ticker is string => typeof ticker === 'string' && ticker !== '')
+                                                        .map((t) => t.toUpperCase())
                                                 )
                                             ) as string[]).map((t: string) => {
                                                 const isActive =
@@ -981,7 +991,7 @@ function ArticleDeepDiveContent({
                                                     <p className="text-[9px] font-bold text-muted-foreground tracking-wider uppercase mb-1">
                                                         Captured Occurrences
                                                     </p>
-                                                    {ticker.occurrences.map((occ: any, oIdx: number) => {
+                                                    {ticker.occurrences.map((occ: { name: string; sentimentScore: number; sentimentLabel: string }, oIdx: number) => {
                                                         const occLabelBg = occ.sentimentLabel === 'positive'
                                                             ? 'bg-sentiment-positive/10 text-sentiment-positive'
                                                             : occ.sentimentLabel === 'negative'
@@ -1012,7 +1022,7 @@ function ArticleDeepDiveContent({
                     {/* Unidentified Keywords */}
                     {(() => {
                         const unidentified = (article.entities || []).filter(
-                            (e: any) => e && (!e.ticker || typeof e.ticker !== 'string' || e.ticker.trim() === '')
+                            (e) => e && (!e.ticker || typeof e.ticker !== 'string' || e.ticker.trim() === '')
                         )
                         if (unidentified.length === 0) return null
 
@@ -1022,7 +1032,7 @@ function ArticleDeepDiveContent({
                                     KEYWORDS
                                 </h3>
                                 <div className='flex flex-wrap gap-2'>
-                                    {unidentified.map((entity: any, index: number) => {
+                                    {unidentified.map((entity, index: number) => {
                                         const labelBg = entity.sentiment_label === 'positive'
                                             ? 'bg-sentiment-positive/10 text-sentiment-positive border-sentiment-positive/30'
                                             : entity.sentiment_label === 'negative'
@@ -1067,7 +1077,7 @@ function ArticleDeepDiveContent({
                                     analyst_confidence: article.sentiment_score,
                                     label: article.sentiment_label,
                                 },
-                                entities: (article.entities || []).map((e: any) => ({
+                                entities: (article.entities || []).map((e) => ({
                                     symbol: e.ticker,
                                     name: e.name,
                                     sentiment: e.sentiment_label,

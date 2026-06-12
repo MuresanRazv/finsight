@@ -23,22 +23,12 @@ import {
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-const getSourceFromUrl = (urlStr: string | null) => {
-    if (!urlStr) return 'FinSight'
-    try {
-        const domain = new URL(urlStr).hostname.replace('www.', '')
-        const parts = domain.split('.')
-        const mainPart = parts[0]
-        if (mainPart === 'theverge') return 'The Verge'
-        if (mainPart === 'nytimes') return 'NY Times'
-        if (mainPart === 'bloomberg') return 'Bloomberg'
-        if (mainPart === 'ft') return 'Financial Times'
-        if (mainPart === 'reuters') return 'Reuters'
-        if (mainPart === 'cnbc') return 'CNBC'
-        return mainPart.charAt(0).toUpperCase() + mainPart.slice(1)
-    } catch {
-        return 'FinSight'
-    }
+interface IngestionItemWithCamelCase extends IngestionRequestItem {
+    articleTitle?: string | null
+    articleSentimentLabel?: string | null
+    articleSentimentScore?: number | null
+    errorMessage?: string | null
+    createdAt?: string | null
 }
 
 export default function IngestionPage() {
@@ -191,11 +181,11 @@ export default function IngestionPage() {
         return 'bg-sentiment-neutral/10 text-sentiment-neutral border border-sentiment-neutral/20'
     }
 
-    const formatHistoryDate = (dateInput: any): string => {
+    const formatHistoryDate = (dateInput: string | number[] | null | undefined | Date): string => {
         if (!dateInput) return 'N/A'
         try {
             if (Array.isArray(dateInput)) {
-                const [year, month, day, hour, minute, second] = dateInput
+                const [year, month, day, hour, minute, second] = dateInput as number[]
                 const date = new Date(
                     year,
                     month - 1,
@@ -209,36 +199,12 @@ export default function IngestionPage() {
             const date = new Date(dateInput)
             if (isNaN(date.getTime())) return 'Invalid Date'
             return date.toLocaleString()
-        } catch (error) {
+        } catch {
             return 'Invalid Date'
         }
     }
 
-    const getISOOrStringDate = (dateInput: any): string => {
-        if (!dateInput) return ''
-        try {
-            if (Array.isArray(dateInput)) {
-                const [year, month, day, hour, minute, second] = dateInput
-                const date = new Date(
-                    year,
-                    month - 1,
-                    day,
-                    hour || 0,
-                    minute || 0,
-                    second || 0,
-                )
-                return date.toISOString()
-            }
-            if (typeof dateInput === 'string') {
-                return dateInput
-            }
-            const date = new Date(dateInput)
-            if (isNaN(date.getTime())) return ''
-            return date.toISOString()
-        } catch (error) {
-            return ''
-        }
-    }
+
 
     return (
         <div className='text-foreground min-h-screen p-8 pb-20'>
@@ -496,33 +462,22 @@ export default function IngestionPage() {
                                             </thead>
                                             <tbody className='divide-border/50 divide-y'>
                                                 {history.map((item) => {
+                                                    const typedItem = item as IngestionItemWithCamelCase
                                                     const articleTitle =
-                                                        item.article_title ||
-                                                        (item as any)
-                                                            .articleTitle
+                                                        typedItem.article_title ||
+                                                        typedItem.articleTitle
                                                     const sentimentLabel =
-                                                        item.article_sentiment_label ||
-                                                        (item as any)
-                                                            .articleSentimentLabel
+                                                        typedItem.article_sentiment_label ||
+                                                        typedItem.articleSentimentLabel
                                                     const sentimentScore =
-                                                        item.article_sentiment_score ??
-                                                        (item as any)
-                                                            .articleSentimentScore
+                                                        typedItem.article_sentiment_score ??
+                                                        typedItem.articleSentimentScore
                                                     const errorMessage =
-                                                        item.error_message ||
-                                                        (item as any)
-                                                            .errorMessage
+                                                        typedItem.error_message ||
+                                                        typedItem.errorMessage
                                                     const createdAt =
-                                                        item.created_at ||
-                                                        (item as any).createdAt
-                                                    const completedAt =
-                                                        item.completed_at ||
-                                                        (item as any)
-                                                            .completedAt
-                                                    const articleProcessedAt =
-                                                        item.article_processed_at ||
-                                                        (item as any)
-                                                            .articleProcessedAt
+                                                        typedItem.created_at ||
+                                                        typedItem.createdAt
 
                                                     return (
                                                         <tr

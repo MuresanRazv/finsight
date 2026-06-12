@@ -22,6 +22,56 @@ import {
 import { NotificationDto } from '@/lib/types/notification'
 import { cleanArticleTitle } from '@/lib/utils'
 
+interface RawNotification {
+    id: number
+    ticker: string
+    article_title?: string
+    articleTitle?: string
+    source?: string | null
+    article_url?: string
+    articleUrl?: string
+    article_overall_sentiment_score?: number
+    articleOverallSentimentScore?: number
+    article_overall_sentiment_label?: string | null
+    articleOverallSentimentLabel?: string | null
+    article_entities?: unknown[] | null
+    articleEntities?: unknown[] | null
+    article_uuid?: string | null
+    articleUuid?: string | null
+    is_read: boolean
+    created_at: string
+}
+
+interface WSMessage {
+    id?: number
+    ticker?: string
+    article_title?: string
+    articleTitle?: string
+    title?: string
+    url?: string
+    source?: string | null
+    article_url?: string
+    articleUrl?: string
+    article_overall_sentiment_score?: number
+    articleOverallSentimentScore?: number
+    article_overall_sentiment_label?: string | null
+    articleOverallSentimentLabel?: string | null
+    article_entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
+    articleEntities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[] | null
+    article_uuid?: string | null
+    articleUuid?: string | null
+    is_read?: boolean
+    created_at?: string
+    entities?: { ticker?: string; sentiment_score?: number; sentimentScore?: number; sentiment_label?: string; sentimentLabel?: string }[]
+    processed_at?: string
+    processedAt?: string
+    overall_sentiment_score?: number
+    overallSentimentScore?: number
+    overall_sentiment_label?: string
+    overallSentimentLabel?: string
+    uuid?: string
+}
+
 export function NotificationBell() {
     const [notifications, setNotifications] = useState<NotificationDto[]>([])
     const [unreadCount, setUnreadCount] = useState(0)
@@ -32,7 +82,7 @@ export function NotificationBell() {
         try {
             const data = await getNotifications()
             if (data && Array.isArray(data)) {
-                const normalized = data.map((n: any) => ({
+                const normalized = data.map((n: RawNotification) => ({
                     ...n,
                     article_title: cleanArticleTitle(
                         n.article_title || n.articleTitle || '',
@@ -53,11 +103,12 @@ export function NotificationBell() {
     }, [])
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void fetchInitialNotifications()
     }, [fetchInitialNotifications])
 
     useEffect(() => {
-        const handleMessage = (message: any) => {
+        const handleMessage = (message: WSMessage) => {
             let notification: NotificationDto
 
             if (message.id !== undefined) {
@@ -77,7 +128,7 @@ export function NotificationBell() {
                 // Map AnalyzedArticleDto from public ticker topic
                 const entityWithTicker =
                     message.entities && Array.isArray(message.entities)
-                        ? message.entities.find((e: any) => !!e.ticker)
+                        ? message.entities.find((e) => !!e.ticker)
                         : null
                 const ticker = entityWithTicker ? entityWithTicker.ticker : 'NEWS'
 
@@ -180,12 +231,12 @@ export function NotificationBell() {
         setIsOpen(open)
     }
 
-    const formatNotificationDate = (dateInput: any) => {
+    const formatNotificationDate = (dateInput: string | number[] | null | undefined | Date) => {
         if (!dateInput) return 'unknown'
         try {
             // Handle array format [YYYY, MM, DD, HH, mm, ss, ns] from some Jackson configurations
             if (Array.isArray(dateInput)) {
-                const [year, month, day, hour, minute, second] = dateInput
+                const [year, month, day, hour, minute, second] = dateInput as number[]
                 return formatDistanceToNow(
                     new Date(
                         year,
@@ -201,7 +252,7 @@ export function NotificationBell() {
             const date = new Date(dateInput)
             if (isNaN(date.getTime())) return 'invalid date'
             return formatDistanceToNow(date, { addSuffix: true })
-        } catch (error) {
+        } catch {
             return 'invalid date'
         }
     }
@@ -216,8 +267,8 @@ export function NotificationBell() {
                     ),
                 )
                 setUnreadCount((prev) => Math.max(0, prev - 1))
-            } catch (error) {
-                console.error('Failed to mark as read', error)
+            } catch {
+                console.error('Failed to mark as read')
             }
         }
     }

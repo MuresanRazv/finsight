@@ -27,7 +27,7 @@ export function cleanArticleTitle(
             if (domainOnly) {
                 searchTerms.push(domainOnly.toLowerCase())
             }
-        } catch (e) {}
+        } catch {}
     }
 
     // Filter out very short search terms to avoid over-matching

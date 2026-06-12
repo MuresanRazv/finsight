@@ -10,7 +10,7 @@ import React, {
 import { WebSocketService } from '@/lib/websocket'
 
 interface WebSocketContextType {
-    subscribe: (destination: string, callback: (message: any) => void) => void
+    subscribe: (destination: string, callback: (message: unknown) => void) => void
     unsubscribe: (destination: string) => void
     isConnected: boolean
 }
@@ -32,6 +32,7 @@ export function WebSocketProvider({
             const wsService = new WebSocketService(token)
             wsService.activate()
             wsServiceRef.current = wsService
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsConnected(true)
         }
 
@@ -46,7 +47,7 @@ export function WebSocketProvider({
 
     const subscribe = (
         destination: string,
-        callback: (message: any) => void,
+        callback: (message: unknown) => void,
     ) => {
         if (wsServiceRef.current) {
             wsServiceRef.current.subscribe(destination, callback)

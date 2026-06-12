@@ -236,7 +236,7 @@ export default function SearchPage() {
                         </h2>
                         <p className='leading-relaxed text-[#94a3b8]'>
                             Discover hidden connections across thousands of
-                            financial sources using natural language. FinSight's
+                            financial sources using natural language. FinSight&apos;s
                             semantic search understands context, going beyond
                             keywords to deliver precise insights and trends from
                             global markets, news, and reports.
@@ -523,7 +523,7 @@ export default function SearchPage() {
                                     <select
                                         value={sortBy}
                                         onChange={(e) =>
-                                            setSortBy(e.target.value as any)
+                                            setSortBy(e.target.value as 'confidence' | 'date' | 'relevance')
                                         }
                                         className='cursor-pointer appearance-none rounded-md border border-[#334155] bg-[#1e293b] py-1.5 pr-8 pl-3 text-xs text-white outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]'
                                     >

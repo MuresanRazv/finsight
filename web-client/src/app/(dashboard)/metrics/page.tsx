@@ -15,12 +15,12 @@ import {
     Rss,
     BarChart3,
     FileText,
+    LucideIcon,
 } from 'lucide-react'
 import {
     getObservabilityMetrics,
     clearObservabilityMetrics,
     ObservabilityMetricsResponse,
-    MetricDetail,
     MetricRun,
 } from '@/app/actions/observability'
 import { toast } from 'sonner'
@@ -49,7 +49,7 @@ const ACTION_LABELS: Record<string, string> = {
     rag_chat: 'RAG LLM Chat',
 }
 
-const ACTION_ICONS: Record<string, any> = {
+const ACTION_ICONS: Record<string, LucideIcon> = {
     rss_scrape: Rss,
     automatic_ingest_cron: Clock,
     celery_task_process: Cpu,
@@ -146,7 +146,7 @@ export default function MetricsPage() {
         .filter((item) => item.count > 0 || true) // Keep all to show baseline 0
 
     // Combine history for all or filter
-    let combinedHistory: Array<MetricRun & { action: string }> = []
+    const combinedHistory: Array<MetricRun & { action: string }> = []
     if (metrics) {
         Object.entries(metrics).forEach(([actionKey, detail]) => {
             if (selectedActionFilter === 'all' || selectedActionFilter === actionKey) {
@@ -447,7 +447,7 @@ export default function MetricsPage() {
                                                     ) : run.article_count > 0 ? (
                                                         <span>Articles: {run.article_count}</span>
                                                     ) : run.metadata?.query ? (
-                                                        <span className='italic'>Query: "{run.metadata.query}"</span>
+                                                        <span className='italic'>Query: &quot;{run.metadata.query}&quot;</span>
                                                     ) : run.metadata?.url ? (
                                                         <span className='truncate'>{run.metadata.url}</span>
                                                     ) : (

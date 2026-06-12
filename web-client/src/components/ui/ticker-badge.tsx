@@ -22,7 +22,16 @@ export function TickerBadge({
 }: TickerBadgeProps) {
     const cleanTicker = ticker.trim().replace(/[()]/g, '').toUpperCase()
     const [isOpen, setIsOpen] = useState(false)
-    const [data, setData] = useState<any>(null)
+    interface StockData {
+        name?: string
+        exchange?: string
+        industry?: string
+        logo?: string
+        price?: number | null
+        change?: number | null
+        changePercent?: number | null
+    }
+    const [data, setData] = useState<StockData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(false)
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -123,6 +132,7 @@ export function TickerBadge({
                                 </p>
                             </div>
                             {data.logo ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={data.logo}
                                     alt={data.name}

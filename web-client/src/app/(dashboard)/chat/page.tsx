@@ -99,7 +99,7 @@ export default function ChatPage() {
                             Start your analysis
                         </h2>
                         <p className='leading-relaxed text-[#94a3b8]'>
-                            Chat with FinSight's AI to get deep financial
+                            Chat with FinSight&apos;s AI to get deep financial
                             analysis, summaries of complex market events, and
                             actionable insights derived from real-time news
                             sources.

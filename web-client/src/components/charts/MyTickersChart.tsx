@@ -21,7 +21,13 @@ import { ChartSkeleton } from './ChartSkeleton'
 import { TickerBadge } from '@/components/ui/ticker-badge'
 import { cn } from '@/lib/utils'
 
-const CustomDot = (props: any) => {
+interface CustomDotProps {
+    cx?: number
+    cy?: number
+    value?: number
+}
+
+const CustomDot = (props: CustomDotProps) => {
     const { cx, cy, value } = props
 
     if (value === undefined || value === null) return null
@@ -36,7 +42,7 @@ const CustomDot = (props: any) => {
     return <circle cx={cx} cy={cy} r={4} fill={color} strokeWidth={0} />
 }
 
-const CustomActiveDot = (props: any) => {
+const CustomActiveDot = (props: CustomDotProps) => {
     const { cx, cy, value } = props
 
     if (value === undefined || value === null) return null
@@ -65,24 +71,38 @@ export function MyTickersChart() {
     const [loading, setLoading] = useState(true)
     const [filters, setFilters] = useState<Record<string, string>>({})
     const isInitialLoad = useRef(true)
-    const [quotes, setQuotes] = useState<Record<string, any>>({})
+    interface StockQuote {
+        name?: string
+        exchange?: string
+        industry?: string
+        logo?: string
+        price?: number | null
+        changePercent?: number | null
+        change?: number | null
+    }
+    const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
     const [quotesLoading, setQuotesLoading] = useState(false)
 
-    const chartData = Array.isArray(data?.data) ? data.data : []
+    const chartData = React.useMemo(
+        () => (Array.isArray(data?.data) ? (data.data as Record<string, unknown>[]) : []),
+        [data],
+    )
 
-    const linesSet = new Set<string>()
-    chartData.forEach((item) => {
-        Object.keys(item).forEach((k) => {
-            if (
-                k !== 'date' &&
-                !k.endsWith('_label') &&
-                !k.endsWith('_confidence')
-            ) {
-                linesSet.add(k)
-            }
+    const lines = React.useMemo(() => {
+        const linesSet = new Set<string>()
+        chartData.forEach((item) => {
+            Object.keys(item).forEach((k) => {
+                if (
+                    k !== 'date' &&
+                    !k.endsWith('_label') &&
+                    !k.endsWith('_confidence')
+                ) {
+                    linesSet.add(k)
+                }
+            })
         })
-    })
-    const lines = Array.from(linesSet)
+        return Array.from(linesSet)
+    }, [chartData])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -118,13 +138,14 @@ export function MyTickersChart() {
     }, [filters])
 
     // Fetch quotes for all active watchlist lines
+    const linesKey = lines.join(',')
     useEffect(() => {
         if (lines.length === 0) return
 
         const fetchQuotes = async () => {
             setQuotesLoading(true)
             try {
-                const quotesData: Record<string, any> = {}
+                const quotesData: Record<string, StockQuote> = {}
                 await Promise.all(
                     lines.map(async (ticker) => {
                         try {
@@ -132,21 +153,21 @@ export function MyTickersChart() {
                             if (res.ok) {
                                 quotesData[ticker] = await res.json()
                             }
-                        } catch (e) {
-                            console.error(e)
+                        } catch {
+                            // ignore
                         }
                     }),
                 )
                 setQuotes(quotesData)
-            } catch (e) {
-                console.error('Failed to fetch watchlist quotes:', e)
+            } catch {
+                console.error('Failed to fetch watchlist quotes')
             } finally {
                 setQuotesLoading(false)
             }
         }
 
         fetchQuotes()
-    }, [lines.join(',')])
+    }, [lines, linesKey])
 
     const handleFilterChange = (key: string, value: string) => {
         setFilters((prev) => ({ ...prev, [key]: value }))
@@ -165,7 +186,7 @@ export function MyTickersChart() {
                 month: 'short',
                 day: 'numeric',
             })
-        } catch (e) {
+        } catch {
             return dateStr
         }
     }
@@ -176,8 +197,8 @@ export function MyTickersChart() {
 
     const getGradientStops = (ticker: string) => {
         const values = chartData
-            .map((d: any) => d[ticker] as number)
-            .filter((v: any) => typeof v === 'number')
+            .map((d: Record<string, unknown>) => d[ticker] as number)
+            .filter((v: number) => typeof v === 'number')
         if (values.length === 0) return null
 
         const min = Math.min(...values)
@@ -447,6 +468,7 @@ export function MyTickersChart() {
                                 >
                                     <div className='flex min-w-0 items-center gap-3'>
                                         {qData.logo ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={qData.logo}
                                                 alt={qData.name}

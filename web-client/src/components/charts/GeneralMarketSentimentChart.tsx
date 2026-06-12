@@ -78,7 +78,7 @@ export function GeneralMarketSentimentChart() {
                 month: 'short',
                 day: 'numeric',
             })
-        } catch (e) {
+        } catch {
             return dateStr
         }
     }
@@ -91,8 +91,8 @@ export function GeneralMarketSentimentChart() {
 
     const getGradientStops = () => {
         const values = chartData
-            .map((d: any) => d.sentiment as number)
-            .filter((v: any) => typeof v === 'number')
+            .map((d: { sentiment?: number }) => d.sentiment as number)
+            .filter((v: number) => typeof v === 'number')
         if (values.length === 0) return null
 
         const min = Math.min(...values)

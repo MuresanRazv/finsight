@@ -5,5 +5,5 @@ export interface ChartDataResponse {
     title?: string
     description?: string
     available_filters?: FilterDefinition[]
-    data?: any
+    data?: unknown
 }
