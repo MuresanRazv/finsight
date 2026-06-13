@@ -338,8 +338,8 @@ export default function TickerPage({
     return (
         <div className='space-y-8 pb-16'>
             {/* Navigation back and header banner */}
-            <div className='flex items-start justify-between gap-4'>
-                <div>
+            <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0'>
+                <div className='min-w-0'>
                     <button
                         onClick={() => router.back()}
                         className='text-muted-foreground hover:text-foreground group mb-4 flex cursor-pointer items-center gap-2 text-sm transition-colors'
@@ -354,15 +354,15 @@ export default function TickerPage({
                                 {symbol.slice(0, 2)}
                             </span>
                         </div>
-                        <div>
+                        <div className='min-w-0'>
                             <div className='flex items-center gap-2.5'>
-                                <h1 className='text-foreground text-2xl font-bold'>
+                                <h1 className='text-foreground text-2xl font-bold truncate'>
                                     {symbol}
                                 </h1>
                                 {quoteLoading ? (
-                                    <div className="h-4 w-24 bg-muted/20 animate-pulse rounded"></div>
+                                    <div className="h-4 w-24 bg-muted/20 animate-pulse rounded shrink-0"></div>
                                 ) : (
-                                    <span className='text-muted-foreground text-sm font-medium'>
+                                    <span className='text-muted-foreground text-sm font-medium truncate'>
                                         {stockQuote?.name}
                                     </span>
                                 )}
@@ -370,7 +370,7 @@ export default function TickerPage({
                             {quoteLoading ? (
                                 <div className="mt-2 h-6 w-32 bg-muted/20 animate-pulse rounded"></div>
                             ) : stockQuote && stockQuote.price !== null && stockQuote.price !== undefined ? (
-                                <div className='mt-1 flex items-center gap-3'>
+                                <div className='mt-1 flex flex-wrap items-center gap-3'>
                                     <span className='text-foreground font-mono text-2xl font-bold'>
                                         ${stockQuote.price.toFixed(2)}
                                     </span>
@@ -405,11 +405,11 @@ export default function TickerPage({
                     </div>
                 </div>
 
-                <div className='flex items-center gap-3'>
+                <div className='flex items-center gap-3 shrink-0 self-start sm:self-auto mt-2 sm:mt-0 w-full sm:w-auto'>
                     <button
                         onClick={toggleWatchlist}
                         disabled={loadingWatchlist}
-                        className={`flex cursor-pointer items-center gap-2 rounded-full border px-5 py-2.5 text-xs font-bold transition-all active:scale-95 ${
+                        className={`flex cursor-pointer items-center justify-center gap-2 rounded-full border px-5 py-2.5 text-xs font-bold transition-all active:scale-95 w-full sm:w-auto ${
                             isAddedToWatchlist
                                 ? 'bg-primary/10 border-primary text-primary'
                                 : 'border-border text-muted-foreground hover:text-foreground hover:bg-surface-container-high'

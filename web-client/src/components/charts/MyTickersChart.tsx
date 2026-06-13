@@ -137,17 +137,22 @@ export function MyTickersChart() {
         fetchData()
     }, [filters])
 
-    // Fetch quotes for all active watchlist lines
-    const linesKey = lines.join(',')
+    const watchlistTickers = React.useMemo(() => {
+        const tickerFilter = data?.available_filters?.find((f) => f.key === 'ticker')
+        return (tickerFilter?.options as string[]) || []
+    }, [data])
+
+    // Fetch quotes for all active watchlist tickers
+    const watchlistTickersKey = watchlistTickers.join(',')
     useEffect(() => {
-        if (lines.length === 0) return
+        if (watchlistTickers.length === 0) return
 
         const fetchQuotes = async () => {
             setQuotesLoading(true)
             try {
                 const quotesData: Record<string, StockQuote> = {}
                 await Promise.all(
-                    lines.map(async (ticker) => {
+                    watchlistTickers.map(async (ticker) => {
                         try {
                             const res = await fetch(`/api/stocks/${ticker}`)
                             if (res.ok) {
@@ -167,13 +172,13 @@ export function MyTickersChart() {
         }
 
         fetchQuotes()
-    }, [lines, linesKey])
+    }, [watchlistTickers, watchlistTickersKey])
 
     const handleFilterChange = (key: string, value: string) => {
         setFilters((prev) => ({ ...prev, [key]: value }))
     }
 
-    const formatDate = (dateStr: string) => {
+    const formatDate = (dateStr: string, index?: number) => {
         try {
             const date = new Date(dateStr)
             if (filters.range === '24h') {
@@ -182,6 +187,18 @@ export function MyTickersChart() {
                     minute: '2-digit',
                 })
             }
+
+            // Deduplicate calendar date ticks on the axis to prevent collisions
+            if (typeof index === 'number' && index > 0 && chartData[index - 1]) {
+                const prevVal = chartData[index - 1] as Record<string, unknown>
+                if (prevVal && prevVal.date) {
+                    const prevDate = new Date(prevVal.date as string)
+                    if (prevDate.toDateString() === date.toDateString()) {
+                        return ''
+                    }
+                }
+            }
+
             return date.toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -239,12 +256,12 @@ export function MyTickersChart() {
     }
 
     return (
-        <div className='grid w-full grid-cols-1 gap-8 lg:grid-cols-4'>
-            <Card className='dark flex h-[500px] w-full flex-col lg:col-span-3'>
+        <div className='grid w-full grid-cols-1 gap-8 lg:grid-cols-4 min-w-0'>
+            <Card className='dark flex h-auto md:h-[500px] w-full min-w-0 flex-col lg:col-span-3 pb-2'>
                 <CardHeader className='pb-2'>
-                    <div className='flex flex-wrap items-center justify-between gap-4'>
-                        <CardTitle>My Tickers</CardTitle>
-                        <div className='flex flex-wrap items-center gap-2'>
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 min-w-0'>
+                        <CardTitle className='text-lg md:text-xl shrink-0'>My Tickers</CardTitle>
+                        <div className='flex items-center gap-1.5 overflow-x-auto pb-1 w-full scrollbar-none whitespace-nowrap min-w-0'>
                             {lines.map((ticker) => (
                                 <TickerBadge key={ticker} ticker={ticker} />
                             ))}
@@ -252,7 +269,7 @@ export function MyTickersChart() {
                     </div>
                 </CardHeader>
                 <CardContent className='flex min-h-0 flex-1 flex-col pb-4'>
-                    <div className='mb-2 flex items-start justify-between'>
+                    <div className='mb-2 w-full min-w-0'>
                         <ChartFilters
                             filters={data?.available_filters || []}
                             activeFilters={filters}
@@ -261,18 +278,18 @@ export function MyTickersChart() {
                     </div>
                     <SentimentLegend />
                     {chartData.length === 0 ? (
-                        <div className='text-muted-foreground flex flex-1 items-center justify-center'>
+                        <div className='text-muted-foreground flex h-[280px] md:h-[350px] items-center justify-center'>
                             No data found
                         </div>
                     ) : (
-                        <div className='min-h-0 flex-1'>
+                        <div className='h-[280px] md:h-[350px] w-full'>
                             <ResponsiveContainer width='100%' height='100%'>
                                 <LineChart
                                     data={chartData}
                                     margin={{
                                         top: 5,
-                                        right: 30,
-                                        left: 20,
+                                        right: 10,
+                                        left: -25,
                                         bottom: 5,
                                     }}
                                 >
@@ -290,16 +307,23 @@ export function MyTickersChart() {
                                             </linearGradient>
                                         ))}
                                     </defs>
-                                    <CartesianGrid strokeDasharray='3 3' />
+                                    <CartesianGrid strokeDasharray='3 3' stroke='#1c2b3c' vertical={false} />
                                     <XAxis
                                         dataKey='date'
                                         tickFormatter={formatDate}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        minTickGap={20}
+                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
                                     />
                                     <YAxis
                                         domain={[-1, 1]}
                                         tickFormatter={(val) =>
                                             val === 0 ? '0' : val.toFixed(1)
                                         }
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
                                     />
                                     <ReferenceLine
                                         y={0}
@@ -425,19 +449,19 @@ export function MyTickersChart() {
                 </CardContent>
             </Card>
 
-            <Card className='dark bg-card border-border flex h-[500px] w-full flex-col shadow-xs lg:col-span-1'>
+            <Card className='dark bg-card border-border flex h-[300px] md:h-[500px] w-full flex-col shadow-xs lg:col-span-1'>
                 <CardHeader className='border-border/40 shrink-0 border-b pb-2'>
                     <CardTitle className='text-foreground text-base font-semibold'>
                         Watchlist Quotes
                     </CardTitle>
                 </CardHeader>
                 <CardContent className='scrollbar-thin scrollbar-thumb-border min-h-0 flex-1 space-y-1.5 overflow-y-auto p-4'>
-                    {lines.length === 0 ? (
+                    {watchlistTickers.length === 0 ? (
                         <div className='text-muted-foreground flex h-full flex-1 items-center justify-center text-xs'>
                             No active tickers
                         </div>
                     ) : (
-                        lines.map((ticker) => {
+                        watchlistTickers.map((ticker) => {
                             const qData = quotes[ticker]
                             if (quotesLoading && !qData) {
                                 return (
