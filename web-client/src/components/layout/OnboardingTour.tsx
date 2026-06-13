@@ -252,7 +252,7 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
             left: `${left}px`,
             width: `${cardWidth}px`,
             zIndex: 9999,
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'all 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
         }
     }
 
@@ -267,51 +267,30 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
 
     return (
         <div className="fixed inset-0 z-[9998] overflow-hidden select-none">
-            {/* SVG Mask for the blurred cutout overlay */}
-            <svg 
-                className="absolute inset-0 h-full w-full pointer-events-auto"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }}
-            >
-                <defs>
-                    <mask id="onboarding-mask">
-                        {/* Whole screen filled white (means solid dark overlay) */}
-                        <rect width="100%" height="100%" fill="white" />
-                        {/* Cutout area filled black (means transparent cutout hole) */}
-                        {cutout && (
-                            <rect
-                                x={cutout.x}
-                                y={cutout.y}
-                                width={cutout.width}
-                                height={cutout.height}
-                                rx={cutout.rx}
-                                ry={cutout.rx}
-                                fill="black"
-                                className="transition-all duration-300"
-                            />
-                        )}
-                    </mask>
-                </defs>
-                
-                {/* SVG Backdrop Overlay */}
-                <rect
-                    width="100%"
-                    height="100%"
-                    fill="rgba(8, 13, 24, 0.65)"
-                    mask="url(#onboarding-mask)"
-                    className="backdrop-blur-[2px] transition-all duration-300"
-                />
-            </svg>
+            {/* Full screen pointer events blocker to prevent clicking elements on the page */}
+            <div className="fixed inset-0 z-[9996] pointer-events-auto" />
 
-            {/* Glowing borders around highlighted area */}
-            {cutout && !isNavigating && (
+            {/* Backdrop and highlighted area */}
+            {!cutout ? (
+                // Step 1 or during transition: render a solid full screen overlay
                 <div
-                    className="pointer-events-none fixed border-2 border-primary/60 shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-300"
+                    className="fixed inset-0 bg-slate-950/65 backdrop-blur-[1.5px] z-[9997]"
+                    style={{
+                        transition: 'all 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
+                    }}
+                />
+            ) : (
+                // Step with highlighted element: render the single cutout overlay div with a massive box-shadow
+                <div
+                    className="fixed border-2 border-primary/60 pointer-events-none z-[9997]"
                     style={{
                         left: `${cutout.x}px`,
                         top: `${cutout.y}px`,
                         width: `${cutout.width}px`,
                         height: `${cutout.height}px`,
                         borderRadius: `${cutout.rx}px`,
+                        boxShadow: '0 0 0 9999px rgba(8, 13, 24, 0.65), 0 0 15px rgba(59, 130, 246, 0.35)',
+                        transition: 'all 0.45s cubic-bezier(0.25, 1, 0.5, 1)',
                     }}
                 />
             )}
