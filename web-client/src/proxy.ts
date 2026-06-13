@@ -9,6 +9,7 @@ export async function proxy(request: NextRequest) {
 
     const isAuthPage =
         pathname.startsWith('/login') || pathname.startsWith('/register')
+    const isRootPath = pathname === '/'
 
     // If the user is trying to access dashboard routes (non-auth) without the cookie
     if (!isAuthPage && !session.token) {
@@ -17,7 +18,7 @@ export async function proxy(request: NextRequest) {
 
     // If a logged-in user tries to access /login or /register
     if (isAuthPage && session.token) {
-        return NextResponse.redirect(new URL('/', request.url))
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     if (session.refreshToken && session.refreshTokenExpiry) {
@@ -49,6 +50,10 @@ export async function proxy(request: NextRequest) {
 
     if (!session.user || !session.user.role) {
         await updateUserSession()
+    }
+
+    if (isRootPath) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return NextResponse.next()
