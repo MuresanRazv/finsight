@@ -19,7 +19,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
     // Auto-close sidebar on mobile when navigating pages
     useEffect(() => {
-        setIsOpen(false)
+        const timer = setTimeout(() => {
+            setIsOpen(false)
+        }, 0)
+        return () => clearTimeout(timer)
     }, [pathname])
 
     return (
