@@ -65,7 +65,7 @@ export function GeneralMarketSentimentChart() {
         setFilters((prev) => ({ ...prev, [key]: value }))
     }
 
-    const formatDate = (dateStr: string) => {
+    const formatDate = (dateStr: string, index?: number) => {
         try {
             const date = new Date(dateStr)
             if (filters.range === '24h') {
@@ -74,6 +74,18 @@ export function GeneralMarketSentimentChart() {
                     minute: '2-digit',
                 })
             }
+
+            // Deduplicate calendar date ticks on the axis to prevent collisions
+            if (typeof index === 'number' && index > 0 && chartData[index - 1]) {
+                const prevVal = chartData[index - 1] as Record<string, unknown>
+                if (prevVal && prevVal.date) {
+                    const prevDate = new Date(prevVal.date as string)
+                    if (prevDate.toDateString() === date.toDateString()) {
+                        return ''
+                    }
+                }
+            }
+
             return date.toLocaleDateString(undefined, {
                 month: 'short',
                 day: 'numeric',
@@ -174,14 +186,14 @@ export function GeneralMarketSentimentChart() {
     }
 
     return (
-        <Card className='dark flex h-[500px] w-full flex-col'>
-            <CardHeader>
-                <CardTitle>
+        <Card className='dark flex h-auto md:h-[500px] w-full min-w-0 flex-col pb-2'>
+            <CardHeader className='py-4'>
+                <CardTitle className='text-lg md:text-xl'>
                     {data?.title || 'General Market Sentiment'}
                 </CardTitle>
             </CardHeader>
             <CardContent className='flex min-h-0 flex-1 flex-col pb-4'>
-                <div className='mb-2 flex items-start justify-between'>
+                <div className='mb-2 w-full min-w-0'>
                     <ChartFilters
                         filters={data?.available_filters || []}
                         activeFilters={filters}
@@ -190,18 +202,18 @@ export function GeneralMarketSentimentChart() {
                 </div>
                 <SentimentLegend />
                 {chartData.length === 0 ? (
-                    <div className='text-muted-foreground flex flex-1 items-center justify-center'>
+                    <div className='text-muted-foreground flex h-[280px] md:h-[350px] items-center justify-center'>
                         No data found
                     </div>
                 ) : (
-                    <div className='min-h-0 flex-1'>
+                    <div className='h-[280px] md:h-[350px] w-full'>
                         <ResponsiveContainer width='100%' height='100%'>
                             <AreaChart
                                 data={chartData}
                                 margin={{
                                     top: 5,
-                                    right: 30,
-                                    left: 20,
+                                    right: 10,
+                                    left: -25,
                                     bottom: 5,
                                 }}
                             >
@@ -216,16 +228,23 @@ export function GeneralMarketSentimentChart() {
                                         {getGradientStops()}
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray='3 3' />
+                                <CartesianGrid strokeDasharray='3 3' stroke='#1c2b3c' vertical={false} />
                                 <XAxis
                                     dataKey='date'
                                     tickFormatter={formatDate}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    minTickGap={20}
+                                    tick={{ fontSize: 10, fill: '#94a3b8' }}
                                 />
                                 <YAxis
                                     domain={[-1, 1]}
                                     tickFormatter={(val) =>
                                         val === 0 ? '0' : val.toFixed(1)
                                     }
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 10, fill: '#94a3b8' }}
                                 />
                                 <ReferenceLine
                                     y={0}

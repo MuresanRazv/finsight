@@ -285,7 +285,7 @@ export default function SearchPage() {
                                                 <Search className='h-5 w-5 text-[#94a3b8]' />
                                             </div>
                                             <Input
-                                                className='w-full rounded-xl border-[#334155] bg-[#243046] py-7 pr-32 pl-12 text-base text-white shadow-sm placeholder:text-[#94a3b8] focus-visible:ring-[#3b82f6]'
+                                                className='w-full rounded-xl border-[#334155] bg-[#243046] py-7 pr-16 sm:pr-32 pl-12 text-base text-white shadow-sm placeholder:text-[#94a3b8] focus-visible:ring-[#3b82f6]'
                                                 placeholder='Search for tickers, market news, or economic trends...'
                                                 {...field}
                                                 disabled={isPending}
@@ -296,26 +296,29 @@ export default function SearchPage() {
                                 </FormItem>
                             )}
                         />
-                        <div className='absolute inset-y-0 right-0 flex items-center gap-2 pr-2'>
+                        <div className='absolute inset-y-0 right-0 flex items-center gap-1.5 pr-2'>
                             {searchHasSearched && (
                                 <Button
                                     type='button'
                                     variant='ghost'
                                     onClick={handleClear}
-                                    className='px-3 py-5 text-[#94a3b8] hover:bg-transparent hover:text-white'
+                                    className='px-2 py-4 text-[#94a3b8] hover:bg-transparent hover:text-white'
                                 >
-                                    <X className='h-5 w-5' />
+                                    <X className='h-4.5 w-4.5' />
                                 </Button>
                             )}
                             <Button
                                 type='submit'
                                 disabled={isPending}
-                                className='rounded-lg border-0 bg-[#334155] px-6 py-5 font-medium text-white transition-colors hover:bg-[#475569]'
+                                className='rounded-lg border-0 bg-[#334155] px-3 sm:px-6 py-4 sm:py-5 font-medium text-white transition-colors hover:bg-[#475569]'
                             >
                                 {isPending ? (
-                                    <Loader2 className='h-5 w-5 animate-spin' />
+                                    <Loader2 className='h-4 w-4 animate-spin' />
                                 ) : (
-                                    'Search'
+                                    <div className='flex items-center gap-2 text-sm'>
+                                        <span className='hidden sm:inline'>Search</span>
+                                        <Search className='h-4 w-4 sm:hidden' />
+                                    </div>
                                 )}
                             </Button>
                         </div>

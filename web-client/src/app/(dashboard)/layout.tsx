@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { TopNav } from '@/components/layout/TopNav'
 import { WebSocketProvider } from '@/components/providers/WebSocketProvider'
 import { SearchStateProvider } from '@/components/providers/SearchStateProvider'
+import { SidebarProvider } from '@/components/providers/SidebarProvider'
 import { OnboardingTour } from '@/components/layout/OnboardingTour'
 import { Footer } from '@/components/layout/Footer'
 import { getSession } from '@/lib/session'
@@ -19,26 +20,28 @@ export default async function DashboardLayout({
     return (
         <WebSocketProvider token={session.token}>
             <SearchStateProvider>
-                <div className='bg-background text-foreground flex h-screen overflow-hidden antialiased'>
-                    <Sidebar session={session.user} />
-                    <div className='relative flex flex-1 flex-col overflow-hidden'>
-                        <TopNav />
-                        <main className='relative z-10 flex flex-1 flex-col overflow-y-auto px-8 pt-16'>
-                            <div className='flex-1 flex flex-col'>
-                                {children}
-                            </div>
-                            <Footer />
-                            {/* Subtle Background Gradient Effect */}
-                            <div
-                                className='pointer-events-none absolute inset-0 -z-10'
-                                style={{
-                                    background:
-                                        'radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 60%)',
-                                }}
-                            ></div>
-                        </main>
+                <SidebarProvider>
+                    <div className='bg-background text-foreground flex h-screen overflow-hidden antialiased'>
+                        <Sidebar session={session.user} />
+                        <div className='relative flex flex-1 flex-col overflow-hidden'>
+                            <TopNav />
+                            <main className='relative z-10 flex flex-1 flex-col overflow-y-auto px-4 md:px-8 pt-20 md:pt-16 pb-8'>
+                                <div className='flex-1 flex flex-col'>
+                                    {children}
+                                </div>
+                                <Footer />
+                                {/* Subtle Background Gradient Effect */}
+                                <div
+                                    className='pointer-events-none absolute inset-0 -z-10'
+                                    style={{
+                                        background:
+                                            'radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 60%)',
+                                    }}
+                                ></div>
+                            </main>
+                        </div>
                     </div>
-                </div>
+                </SidebarProvider>
                 <OnboardingTour session={session.user} />
             </SearchStateProvider>
         </WebSocketProvider>

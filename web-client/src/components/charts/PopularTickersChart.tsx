@@ -80,9 +80,9 @@ export function PopularTickersChart() {
     const chartData = Array.isArray(data?.data) ? data.data : []
 
     return (
-        <Card className='dark flex h-[500px] w-full flex-col'>
-            <CardHeader>
-                <CardTitle>Popular Tickers</CardTitle>
+        <Card className='dark flex h-auto md:h-[500px] w-full min-w-0 flex-col pb-2'>
+            <CardHeader className='py-4'>
+                <CardTitle className='text-lg md:text-xl'>Popular Tickers</CardTitle>
             </CardHeader>
             <CardContent className='flex min-h-0 flex-1 flex-col pb-4'>
                 <ChartFilters
@@ -91,28 +91,36 @@ export function PopularTickersChart() {
                     onFilterChange={handleFilterChange}
                 />
                 {chartData.length === 0 ? (
-                    <div className='text-muted-foreground flex flex-1 items-center justify-center'>
+                    <div className='text-muted-foreground flex h-[280px] md:h-[350px] items-center justify-center'>
                         No data found
                     </div>
                 ) : (
-                    <div className='min-h-0 flex-1'>
+                    <div className='h-[280px] md:h-[350px] w-full'>
                         <ResponsiveContainer width='100%' height='100%'>
                             <BarChart
                                 data={chartData}
                                 layout='vertical'
                                 margin={{
                                     top: 5,
-                                    right: 30,
-                                    left: 20,
+                                    right: 15,
+                                    left: -15,
                                     bottom: 5,
                                 }}
                             >
-                                <CartesianGrid strokeDasharray='3 3' />
-                                <XAxis type='number' />
+                                <CartesianGrid strokeDasharray='3 3' stroke='#1c2b3c' vertical={true} horizontal={false} />
+                                <XAxis 
+                                    type='number' 
+                                    tickLine={false} 
+                                    axisLine={false} 
+                                    tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                />
                                 <YAxis
                                     dataKey='ticker'
                                     type='category'
-                                    width={80}
+                                    width={60}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
                                 />
                                 <Tooltip
                                     content={({ active, payload, label }) => {

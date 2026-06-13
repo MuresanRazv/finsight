@@ -71,9 +71,9 @@ export function LatestArticlesChart() {
     }
 
     return (
-        <Card className='dark flex h-[500px] w-full flex-col'>
-            <CardHeader>
-                <CardTitle>
+        <Card className='dark flex h-[450px] md:h-[500px] w-full min-w-0 flex-col'>
+            <CardHeader className='py-4'>
+                <CardTitle className='text-lg md:text-xl'>
                     {data?.title || 'Latest Fetched Articles'}
                 </CardTitle>
             </CardHeader>
@@ -107,11 +107,27 @@ export function LatestArticlesChart() {
                                                     {cleanedTitle}
                                                 </span>
                                             </Link>
+                                        </div>
+
+                                        {/* Row 2: Date and Source */}
+                                        <div className='text-muted-foreground flex items-center gap-2 text-xs'>
+                                            <span className='font-mono whitespace-nowrap'>
+                                                {article.formattedDate}
+                                            </span>
+                                            {article.source && (
+                                                <span className='text-primary bg-primary/10 border-primary/20 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium max-w-[120px] truncate'>
+                                                    {article.source}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Row 3: Sentiment and Confidence */}
+                                        <div className='flex items-center gap-4 text-xs mt-0.5'>
                                             <Badge
                                                 variant='outline'
-                                                className={getSentimentColor(
+                                                className={`capitalize shrink-0 ${getSentimentColor(
                                                     article.overall_sentiment_label,
-                                                )}
+                                                )}`}
                                                 style={
                                                     article.overall_sentiment_label?.toLowerCase() !==
                                                         'positive' &&
@@ -131,23 +147,10 @@ export function LatestArticlesChart() {
                                                     article.overall_sentiment_label
                                                 }
                                             </Badge>
-                                        </div>
 
-                                        <div className='text-muted-foreground flex items-center justify-between text-xs'>
-                                            <div className='flex items-center gap-2'>
-                                                <span className='font-mono'>
-                                                    {article.formattedDate}
-                                                </span>
-                                                {article.source && (
-                                                    <span className='text-primary bg-primary/10 border-primary/20 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium'>
-                                                        {article.source}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <div className='flex items-center gap-2'>
-                                                <span>Confidence</span>
-                                                <div className='bg-secondary h-2 w-24 overflow-hidden rounded-full'>
+                                            <div className='text-muted-foreground flex items-center gap-2'>
+                                                <span className='font-medium text-[10px] sm:text-xs'>Confidence</span>
+                                                <div className='bg-secondary h-1.5 w-16 sm:w-24 overflow-hidden rounded-full'>
                                                     <div
                                                         className='bg-primary/60 h-full transition-all duration-500'
                                                         style={{
@@ -155,7 +158,7 @@ export function LatestArticlesChart() {
                                                         }}
                                                     />
                                                 </div>
-                                                <span className='w-8 text-right'>
+                                                <span className='w-8 text-right font-mono text-[10px] sm:text-xs font-semibold'>
                                                     {(
                                                         article.overall_sentiment_score *
                                                         100
@@ -203,18 +206,6 @@ export function LatestArticlesChart() {
                                                                                 displayName
                                                                             }
                                                                         </span>
-                                                                        {article.source && (
-                                                                            <>
-                                                                                <span className='opacity-40'>
-                                                                                    •
-                                                                                </span>
-                                                                                <span className='font-medium opacity-80'>
-                                                                                    {
-                                                                                        article.source
-                                                                                    }
-                                                                                </span>
-                                                                            </>
-                                                                        )}
                                                                     </TickerBadge>
                                                                 )
                                                             }
