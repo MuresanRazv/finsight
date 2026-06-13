@@ -141,6 +141,7 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
         // Poll for target element inside the DOM
         let attempts = 0
         const maxAttempts = 40 // 4 seconds max polling
+        let scrolled = false
         
         const checkElement = () => {
             if (!currentStep.target) {
@@ -153,6 +154,10 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
             if (el) {
                 const rect = el.getBoundingClientRect()
                 if (rect.width > 0 && rect.height > 0) {
+                    if (!scrolled) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        scrolled = true
+                    }
                     setTargetRect(rect)
                     setIsNavigating(false)
                     return
@@ -178,11 +183,11 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
         return () => clearTimeout(delayTimer)
     }, [currentStepIndex, pathname, isOpen, currentStep, router, setSidebarOpen])
 
-    // Update target bounds on window resizing
+    // Update target bounds on window resizing or scrolling
     useEffect(() => {
         if (!isOpen || !targetRect) return
 
-        const handleResize = () => {
+        const handleResizeOrScroll = () => {
             setWindowSize({ width: window.innerWidth, height: window.innerHeight })
             if (currentStep && currentStep.target) {
                 const el = document.querySelector(currentStep.target)
@@ -192,8 +197,12 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
             }
         }
 
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
+        window.addEventListener('resize', handleResizeOrScroll)
+        window.addEventListener('scroll', handleResizeOrScroll, { passive: true })
+        return () => {
+            window.removeEventListener('resize', handleResizeOrScroll)
+            window.removeEventListener('scroll', handleResizeOrScroll)
+        }
     }, [isOpen, currentStep, targetRect])
 
     const handleNext = () => {
