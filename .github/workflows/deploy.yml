@@ -84,12 +84,12 @@ jobs:
         run: pytest --ignore=test_chroma.py -v || echo "No unit tests found yet — skipping"
 
   # ---------------------------------------------------------------
-  # JOB 4: Build & push Docker images to ghcr.io
+  # JOB 4a: Build & push core-api image (runs in parallel with 4b, 4c)
   # ---------------------------------------------------------------
-  build-and-push:
-    name: Build & push images
+  build-core-api:
+    name: Build core-api image
     runs-on: ubuntu-latest
-    needs: [test-core-api, lint-web-client, test-nlp-engine]
+    needs: test-core-api
     permissions:
       contents: read
       packages: write
@@ -110,7 +110,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # --- core-api ---
       - name: Build & push core-api
         uses: docker/build-push-action@v5
         with:
@@ -120,7 +119,33 @@ jobs:
           cache-from: type=gha,scope=core-api
           cache-to: type=gha,mode=max,scope=core-api
 
-      # --- web-client ---
+  # ---------------------------------------------------------------
+  # JOB 4b: Build & push web-client image (runs in parallel with 4a, 4c)
+  # ---------------------------------------------------------------
+  build-web-client:
+    name: Build web-client image
+    runs-on: ubuntu-latest
+    needs: lint-web-client
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build & push web-client
         uses: docker/build-push-action@v5
         with:
@@ -133,7 +158,33 @@ jobs:
           cache-from: type=gha,scope=web-client
           cache-to: type=gha,mode=max,scope=web-client
 
-      # --- nlp-engine ---
+  # ---------------------------------------------------------------
+  # JOB 4c: Build & push nlp-engine image (runs in parallel with 4a, 4b)
+  # ---------------------------------------------------------------
+  build-nlp-engine:
+    name: Build nlp-engine image
+    runs-on: ubuntu-latest
+    needs: test-nlp-engine
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image owner
+        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build & push nlp-engine
         uses: docker/build-push-action@v5
         with:
@@ -144,12 +195,12 @@ jobs:
           cache-to: type=gha,mode=max,scope=nlp-engine
 
   # ---------------------------------------------------------------
-  # JOB 5: Deploy to VPS via SSH
+  # JOB 5: Deploy to VPS via SSH (waits for all 3 builds)
   # ---------------------------------------------------------------
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [build-core-api, build-web-client, build-nlp-engine]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -162,9 +213,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           source: docker-compose.prod.yml
           target: /root/finsight/
-
-      - name: Set lowercase image owner
-        run: echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -185,7 +233,10 @@ jobs:
             docker pull ghcr.io/muresanrazv/finsight-web-client:latest
             docker pull ghcr.io/muresanrazv/finsight-nlp-engine:latest
 
-            # Restart the stack using the alias (includes --env-file .env.prod)
+            # Log out immediately — credentials not needed on disk
+            docker logout ghcr.io
+
+            # Restart the stack (includes --env-file .env.prod)
             docker compose -f /root/finsight/docker-compose.prod.yml --env-file /root/finsight/.env.prod up -d
 
             # Clean up dangling images to free disk space
