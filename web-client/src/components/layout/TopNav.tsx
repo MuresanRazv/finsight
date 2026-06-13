@@ -30,24 +30,24 @@ export function TopNav() {
             </button>
 
             {/* Left side: Page Title & Subtitle (conditionally rendered) */}
-            <div className='flex-1'>
+            <div className='flex-1 hidden sm:block min-w-0'>
                 {pathname === '/search' && (
-                    <div>
-                        <h1 className='text-lg md:text-xl font-semibold text-white'>
+                    <div className='min-w-0'>
+                        <h1 className='text-lg md:text-xl font-semibold text-white truncate'>
                             Semantic Search
                         </h1>
-                        <p className='mt-0.5 text-xs text-[#94a3b8] hidden sm:block'>
+                        <p className='mt-0.5 text-xs text-[#94a3b8] hidden md:block truncate'>
                             Discover hidden connections across thousands of
                             financial sources.
                         </p>
                     </div>
                 )}
                 {pathname === '/chat' && (
-                    <div>
-                        <h1 className='text-lg md:text-xl font-semibold text-white'>
+                    <div className='min-w-0'>
+                        <h1 className='text-lg md:text-xl font-semibold text-white truncate'>
                             AI Financial Chat
                         </h1>
-                        <p className='mt-0.5 text-xs text-[#94a3b8] hidden sm:block'>
+                        <p className='mt-0.5 text-xs text-[#94a3b8] hidden md:block truncate'>
                             Chat with an AI assistant for financial analysis and
                             insights.
                         </p>
