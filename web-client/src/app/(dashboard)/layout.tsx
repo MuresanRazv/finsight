@@ -41,8 +41,8 @@ export default async function DashboardLayout({
                             </main>
                         </div>
                     </div>
+                    <OnboardingTour session={session.user} />
                 </SidebarProvider>
-                <OnboardingTour session={session.user} />
             </SearchStateProvider>
         </WebSocketProvider>
     )
