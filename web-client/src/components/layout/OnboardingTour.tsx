@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { SessionUser } from '@/lib/session'
 import { X, ChevronRight, ChevronLeft, Sparkles, Loader2 } from 'lucide-react'
+import { useSidebar } from '@/components/providers/SidebarProvider'
 
 // Define the shape of a tour step
 interface TourStep {
@@ -82,6 +83,7 @@ const tourSteps: TourStep[] = [
 export function OnboardingTour({ session }: { session?: SessionUser }) {
     const router = useRouter()
     const pathname = usePathname()
+    const { setIsOpen: setSidebarOpen } = useSidebar()
 
     const [isOpen, setIsOpen] = useState(false)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -116,6 +118,17 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
         if (!isOpen) return
 
         if (!currentStep) return
+
+        // Manage sidebar drawer open/close automatically on mobile viewports
+        const isMobile = window.innerWidth < 768
+        const needsSidebarOpen = isMobile && currentStep.target === '[data-tour="sidebar-nav"]'
+        if (isMobile) {
+            if (currentStep.target === '[data-tour="sidebar-nav"]') {
+                setSidebarOpen(true)
+            } else {
+                setSidebarOpen(false)
+            }
+        }
 
         // If path does not match, trigger Next.js page navigation
         if (currentStep.path && pathname !== currentStep.path) {
@@ -155,13 +168,15 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
             }
         }
 
+        const delay = needsSidebarOpen ? 350 : 150
+
         // Add a slight delay to allow rendering transition to settle
         const delayTimer = setTimeout(() => {
             checkElement()
-        }, 150)
+        }, delay)
 
         return () => clearTimeout(delayTimer)
-    }, [currentStepIndex, pathname, isOpen, currentStep, router])
+    }, [currentStepIndex, pathname, isOpen, currentStep, router, setSidebarOpen])
 
     // Update target bounds on window resizing
     useEffect(() => {
@@ -198,6 +213,7 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
     const handleComplete = () => {
         localStorage.setItem('finsight_onboarding_completed', 'true')
         setIsOpen(false)
+        setSidebarOpen(false)
     }
 
     // Expose a public trigger to restart the tour (useful in settings/profile)
@@ -366,7 +382,8 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
                         {currentStepIndex > 0 && (
                             <button
                                 onClick={handleBack}
-                                className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60 p-1.5 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center"
+                                disabled={isNavigating}
+                                className="bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 border border-slate-700/60 p-1.5 rounded-lg transition-all active:scale-95 cursor-pointer flex items-center"
                                 title="Previous Step"
                             >
                                 <ChevronLeft className="h-4 w-4" />
@@ -375,7 +392,8 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
 
                         <button
                             onClick={handleNext}
-                            className="bg-primary hover:bg-blue-600 text-primary-foreground font-semibold text-xs py-1.5 px-3.5 rounded-lg shadow-lg shadow-blue-500/10 flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                            disabled={isNavigating}
+                            className="bg-primary hover:bg-blue-600 disabled:opacity-50 text-primary-foreground font-semibold text-xs py-1.5 px-3.5 rounded-lg shadow-lg shadow-blue-500/10 flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
                         >
                             <span>
                                 {currentStepIndex === filteredSteps.length - 1 ? 'Finish' : 'Next'}
