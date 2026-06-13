@@ -183,7 +183,7 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
         return () => clearTimeout(delayTimer)
     }, [currentStepIndex, pathname, isOpen, currentStep, router, setSidebarOpen])
 
-    // Update target bounds on window resizing or scrolling
+    // Update target bounds on window resizing, scrolling, or layout shifts
     useEffect(() => {
         if (!isOpen || !targetRect) return
 
@@ -199,9 +199,36 @@ export function OnboardingTour({ session }: { session?: SessionUser }) {
 
         window.addEventListener('resize', handleResizeOrScroll)
         window.addEventListener('scroll', handleResizeOrScroll, { passive: true })
+
+        // Check for layout shifts every 150ms for 1.5 seconds after step mount/update
+        let count = 0
+        const interval = setInterval(() => {
+            if (currentStep && currentStep.target) {
+                const el = document.querySelector(currentStep.target)
+                if (el) {
+                    const newRect = el.getBoundingClientRect()
+                    setTargetRect((prev) => {
+                        if (!prev) return newRect
+                        const diffX = Math.abs(prev.left - newRect.left)
+                        const diffY = Math.abs(prev.top - newRect.top)
+                        const diffW = Math.abs(prev.width - newRect.width)
+                        const diffH = Math.abs(prev.height - newRect.height)
+                        // Only update state if position/size shifted by more than 1px
+                        if (diffX > 1 || diffY > 1 || diffW > 1 || diffH > 1) {
+                            return newRect
+                        }
+                        return prev
+                    })
+                }
+            }
+            count++
+            if (count > 10) clearInterval(interval)
+        }, 150)
+
         return () => {
             window.removeEventListener('resize', handleResizeOrScroll)
             window.removeEventListener('scroll', handleResizeOrScroll)
+            clearInterval(interval)
         }
     }, [isOpen, currentStep, targetRect])
 
