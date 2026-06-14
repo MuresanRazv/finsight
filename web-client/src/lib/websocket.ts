@@ -9,12 +9,22 @@ export class WebSocketService {
         new Map()
 
     constructor(token: string) {
-        const socketUrl =
+        const rawUrl =
             process.env.NEXT_PUBLIC_WS_URL ||
             'http://localhost:8080/ws-sentiment'
 
+        // Convert protocol to ws/wss for standard Stomp brokerURL
+        const brokerUrl = rawUrl
+            .replace(/^http:/i, 'ws:')
+            .replace(/^https:/i, 'wss:')
+
+        // Convert protocol to http/https for SockJS
+        const sockJsUrl = rawUrl
+            .replace(/^ws:/i, 'http:')
+            .replace(/^wss:/i, 'https:')
+
         this.client = new Client({
-            brokerURL: socketUrl,
+            brokerURL: brokerUrl,
             connectHeaders: {
                 Authorization: `Bearer ${token}`,
             },
@@ -27,7 +37,7 @@ export class WebSocketService {
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
             webSocketFactory: () => {
-                return new SockJS(socketUrl)
+                return new SockJS(sockJsUrl)
             },
         })
 
