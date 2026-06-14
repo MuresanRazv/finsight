@@ -107,7 +107,7 @@ public class ChartService {
 
     public ChartDataResponse getMyTickers(Map<String, String> filters, String userEmail) {
         UserSettingsDto settings = userSettingsService.getUserSettings(userEmail);
-        List<String> userTickers = settings.tickers() != null ? settings.tickers() : List.of();
+        List<String> userTickers = (settings != null && settings.tickers() != null) ? settings.tickers() : List.of();
 
         if (userTickers.isEmpty()) {
             return ChartDataResponse.builder()

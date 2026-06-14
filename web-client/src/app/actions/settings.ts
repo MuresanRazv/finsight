@@ -50,7 +50,12 @@ export async function getUserSettings() {
             return null
         }
 
-        return await response.json()
+        const text = await response.text()
+        if (!text || text.trim() === '') {
+            return { tickers: [] }
+        }
+
+        return JSON.parse(text)
     } catch (error) {
         console.error('Failed to fetch user settings', error)
         return null

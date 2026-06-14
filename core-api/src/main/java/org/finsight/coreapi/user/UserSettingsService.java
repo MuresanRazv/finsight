@@ -21,7 +21,15 @@ public class UserSettingsService {
     public UserSettingsDto getUserSettings(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
-        return objectMapper.convertValue(user.getSettings(), UserSettingsDto.class);
+        if (user.getSettings() == null || user.getSettings().isNull()) {
+            return new UserSettingsDto(java.util.Collections.emptyList());
+        }
+        try {
+            UserSettingsDto dto = objectMapper.convertValue(user.getSettings(), UserSettingsDto.class);
+            return dto != null ? dto : new UserSettingsDto(java.util.Collections.emptyList());
+        } catch (IllegalArgumentException e) {
+            return new UserSettingsDto(java.util.Collections.emptyList());
+        }
     }
 
     @Transactional
