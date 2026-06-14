@@ -20,6 +20,10 @@ import { SentimentLegend } from './SentimentLegend'
 import { ChartSkeleton } from './ChartSkeleton'
 import { TickerBadge } from '@/components/ui/ticker-badge'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Settings, TrendingUp } from 'lucide-react'
+
 
 interface CustomDotProps {
     cx?: number
@@ -268,183 +272,207 @@ export function MyTickersChart() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className='flex min-h-0 flex-1 flex-col pb-4'>
-                    <div className='mb-2 w-full min-w-0'>
-                        <ChartFilters
-                            filters={data?.available_filters || []}
-                            activeFilters={filters}
-                            onFilterChange={handleFilterChange}
-                        />
-                    </div>
-                    <SentimentLegend />
-                    {chartData.length === 0 ? (
-                        <div className='text-muted-foreground flex h-[280px] md:h-[350px] items-center justify-center'>
-                            No data found
+                <CardContent className={cn('flex min-h-0 flex-1 flex-col pb-4', watchlistTickers.length === 0 && 'justify-center items-center py-12')}>
+                    {watchlistTickers.length === 0 ? (
+                        <div className='flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-6 py-6'>
+                            <div className='flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary'>
+                                <TrendingUp className='h-8 w-8' />
+                            </div>
+                            <div className='space-y-2'>
+                                <h3 className='text-lg font-semibold tracking-tight text-foreground'>
+                                    No Tickers Configured
+                                </h3>
+                                <p className='text-sm text-muted-foreground leading-relaxed max-w-sm'>
+                                    Add tickers to your watchlist to monitor real-time sentiment trends, news, and market quotes.
+                                </p>
+                            </div>
+                            <Button asChild size='sm' className='font-medium transition-all shadow-md'>
+                                <Link href='/settings#watchlist' className='flex items-center gap-2'>
+                                    <Settings className='h-4 w-4' />
+                                    Configure Watchlist
+                                </Link>
+                            </Button>
                         </div>
                     ) : (
-                        <div className='h-[280px] md:h-[350px] w-full'>
-                            <ResponsiveContainer width='100%' height='100%'>
-                                <LineChart
-                                    data={chartData}
-                                    margin={{
-                                        top: 5,
-                                        right: 10,
-                                        left: -25,
-                                        bottom: 5,
-                                    }}
-                                >
-                                    <defs>
-                                        {lines.map((line) => (
-                                            <linearGradient
-                                                key={line}
-                                                id={`splitColor-${line}`}
-                                                x1='0'
-                                                y1='0'
-                                                x2='0'
-                                                y2='1'
-                                            >
-                                                {getGradientStops(line)}
-                                            </linearGradient>
-                                        ))}
-                                    </defs>
-                                    <CartesianGrid strokeDasharray='3 3' stroke='#1c2b3c' vertical={false} />
-                                    <XAxis
-                                        dataKey='date'
-                                        tickFormatter={formatDate}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        minTickGap={20}
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                    />
-                                    <YAxis
-                                        domain={[-1, 1]}
-                                        tickFormatter={(val) =>
-                                            val === 0 ? '0' : val.toFixed(1)
-                                        }
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                    />
-                                    <ReferenceLine
-                                        y={0}
-                                        stroke='#444'
-                                        strokeDasharray='3 3'
-                                    />
-                                    <Tooltip
-                                        labelFormatter={(label) =>
-                                            formatDate(label as string)
-                                        }
-                                        content={({
-                                            active,
-                                            payload,
-                                            label,
-                                        }) => {
-                                            if (
-                                                active &&
-                                                payload &&
-                                                payload.length
-                                            ) {
-                                                return (
-                                                    <div className='bg-background rounded border p-2 text-sm shadow-sm'>
-                                                        <p className='mb-1 font-semibold'>
-                                                            {formatDate(
-                                                                label as string,
-                                                            )}
-                                                        </p>
-                                                        {payload.map(
-                                                            (entry, index) => {
-                                                                const data =
-                                                                    entry.payload
-                                                                const ticker =
-                                                                    entry.dataKey as string
-                                                                const conf =
-                                                                    data[
-                                                                        `${ticker}_confidence`
-                                                                    ]
-                                                                const lbl =
-                                                                    data[
-                                                                        `${ticker}_label`
-                                                                    ]
-                                                                const val =
-                                                                    entry.value as number
+                        <>
+                            <div className='mb-2 w-full min-w-0'>
+                                <ChartFilters
+                                    filters={data?.available_filters || []}
+                                    activeFilters={filters}
+                                    onFilterChange={handleFilterChange}
+                                />
+                            </div>
+                            <SentimentLegend />
+                            {chartData.length === 0 ? (
+                                <div className='text-muted-foreground flex h-[280px] md:h-[350px] items-center justify-center'>
+                                    No data found
+                                </div>
+                            ) : (
+                                <div className='h-[280px] md:h-[350px] w-full'>
+                                    <ResponsiveContainer width='100%' height='100%'>
+                                        <LineChart
+                                            data={chartData}
+                                            margin={{
+                                                top: 5,
+                                                right: 10,
+                                                left: -25,
+                                                bottom: 5,
+                                            }}
+                                        >
+                                            <defs>
+                                                {lines.map((line) => (
+                                                    <linearGradient
+                                                        key={line}
+                                                        id={`splitColor-${line}`}
+                                                        x1='0'
+                                                        y1='0'
+                                                        x2='0'
+                                                        y2='1'
+                                                    >
+                                                        {getGradientStops(line)}
+                                                    </linearGradient>
+                                                ))}
+                                            </defs>
+                                            <CartesianGrid strokeDasharray='3 3' stroke='#1c2b3c' vertical={false} />
+                                            <XAxis
+                                                dataKey='date'
+                                                tickFormatter={formatDate}
+                                                tickLine={false}
+                                                axisLine={false}
+                                                minTickGap={20}
+                                                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                            />
+                                            <YAxis
+                                                domain={[-1, 1]}
+                                                tickFormatter={(val) =>
+                                                    val === 0 ? '0' : val.toFixed(1)
+                                                }
+                                                tickLine={false}
+                                                axisLine={false}
+                                                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                            />
+                                            <ReferenceLine
+                                                y={0}
+                                                stroke='#444'
+                                                strokeDasharray='3 3'
+                                            />
+                                            <Tooltip
+                                                labelFormatter={(label) =>
+                                                    formatDate(label as string)
+                                                }
+                                                content={({
+                                                    active,
+                                                    payload,
+                                                    label,
+                                                }) => {
+                                                    if (
+                                                        active &&
+                                                        payload &&
+                                                        payload.length
+                                                    ) {
+                                                        return (
+                                                            <div className='bg-background rounded border p-2 text-sm shadow-sm'>
+                                                                <p className='mb-1 font-semibold'>
+                                                                    {formatDate(
+                                                                        label as string,
+                                                                    )}
+                                                                </p>
+                                                                {payload.map(
+                                                                    (entry, index) => {
+                                                                        const data =
+                                                                            entry.payload
+                                                                        const ticker =
+                                                                            entry.dataKey as string
+                                                                        const conf =
+                                                                            data[
+                                                                                `${ticker}_confidence`
+                                                                            ]
+                                                                        const lbl =
+                                                                            data[
+                                                                                `${ticker}_label`
+                                                                            ]
+                                                                        const val =
+                                                                            entry.value as number
 
-                                                                // fallback if backend doesn't send the extra keys
-                                                                const displayConf =
-                                                                    conf !==
-                                                                    undefined
-                                                                        ? conf
-                                                                        : Math.abs(
-                                                                              val,
-                                                                          )
-                                                                const displayLbl =
-                                                                    lbl !==
-                                                                    undefined
-                                                                        ? lbl
-                                                                        : val >
-                                                                            0.3
-                                                                          ? 'positive'
-                                                                          : val <
-                                                                              -0.3
-                                                                            ? 'negative'
-                                                                            : 'neutral'
+                                                                        // fallback if backend doesn't send the extra keys
+                                                                        const displayConf =
+                                                                            conf !==
+                                                                            undefined
+                                                                                ? conf
+                                                                                : Math.abs(
+                                                                                      val,
+                                                                                  )
+                                                                        const displayLbl =
+                                                                            lbl !==
+                                                                            undefined
+                                                                                ? lbl
+                                                                                : val >
+                                                                                    0.3
+                                                                                  ? 'positive'
+                                                                                  : val <
+                                                                                      -0.3
+                                                                                    ? 'negative'
+                                                                                    : 'neutral'
 
-                                                                return (
-                                                                    <div
-                                                                        key={
-                                                                            index
-                                                                        }
-                                                                        style={{
-                                                                            color: entry.color,
-                                                                        }}
-                                                                        className='mb-1'
-                                                                    >
-                                                                        <span className='font-bold'>
-                                                                            {
-                                                                                ticker
-                                                                            }
-                                                                            :
-                                                                        </span>{' '}
-                                                                        <span className='capitalize'>
-                                                                            {
-                                                                                displayLbl
-                                                                            }
-                                                                        </span>{' '}
-                                                                        (
-                                                                        {(
-                                                                            displayConf *
-                                                                            100
-                                                                        ).toFixed(
-                                                                            0,
-                                                                        )}
-                                                                        %
-                                                                        confidence)
-                                                                    </div>
-                                                                )
-                                                            },
-                                                        )}
-                                                    </div>
-                                                )
-                                            }
-                                            return null
-                                        }}
-                                    />
-                                    <Legend />
-                                    {lines.map((line) => (
-                                        <Line
-                                            key={line}
-                                            type='monotone'
-                                            dataKey={line}
-                                            name={line}
-                                            stroke={`url(#splitColor-${line})`}
-                                            strokeWidth={2}
-                                            dot={<CustomDot />}
-                                            activeDot={<CustomActiveDot />}
-                                            connectNulls={true}
-                                        />
-                                    ))}
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                                                                        return (
+                                                                            <div
+                                                                                key={
+                                                                                    index
+                                                                                }
+                                                                                style={{
+                                                                                    color: entry.color,
+                                                                                }}
+                                                                                className='mb-1'
+                                                                            >
+                                                                                <span className='font-bold'>
+                                                                                    {
+                                                                                        ticker
+                                                                                    }
+                                                                                    :
+                                                                                </span>{' '}
+                                                                                <span className='capitalize'>
+                                                                                    {
+                                                                                        displayLbl
+                                                                                    }
+                                                                                </span>{' '}
+                                                                                (
+                                                                                {(
+                                                                                    displayConf *
+                                                                                    100
+                                                                                ).toFixed(
+                                                                                    0,
+                                                                                )}
+                                                                                %
+                                                                                confidence)
+                                                                            </div>
+                                                                        )
+                                                                    },
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    }
+                                                    return null
+                                                }}
+                                            />
+                                            <Legend />
+                                            {lines.map((line) => (
+                                                <Line
+                                                    key={line}
+                                                    type='monotone'
+                                                    dataKey={line}
+                                                    name={line}
+                                                    stroke={`url(#splitColor-${line})`}
+                                                    strokeWidth={2}
+                                                    dot={<CustomDot />}
+                                                    activeDot={<CustomActiveDot />}
+                                                    connectNulls={true}
+                                                />
+                                            ))}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </>
                     )}
                 </CardContent>
             </Card>

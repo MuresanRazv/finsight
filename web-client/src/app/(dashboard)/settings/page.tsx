@@ -104,6 +104,22 @@ export default function SettingsPage() {
         fetchData()
     }, [profileForm, settingsForm])
 
+    // Scroll watchlist configuration into the center if URL hash is present
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.hash === '#watchlist') {
+            const handleScroll = () => {
+                const element = document.getElementById('watchlist')
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+            }
+            // Execute on mount with a short delay to allow DOM to settle
+            const timer = setTimeout(handleScroll, 150)
+            return () => clearTimeout(timer)
+        }
+    }, [])
+
+
     const onProfileSubmit = (data: UserProfileValues) => {
         startTransition(async () => {
             try {
@@ -154,7 +170,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className='dark space-y-6'>
+        <div className='dark space-y-6 max-w-3xl mx-auto w-full'>
             <PageHeader
                 title='Settings'
                 description='Manage your account settings and preferences.'
@@ -241,7 +257,7 @@ export default function SettingsPage() {
                 </Card>
 
                 {/* Watchlist Settings */}
-                <Card>
+                <Card id='watchlist'>
                     <CardHeader>
                         <CardTitle>Watchlist Configuration</CardTitle>
                         <CardDescription>
